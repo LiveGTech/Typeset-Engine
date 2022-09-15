@@ -1,0 +1,62 @@
+typeset-container {
+    display: flex;
+    height: 40vh;
+    background-color: var(--secondaryBackground);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+typeset-container > textarea {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+typeset-code {
+    display: flex;
+    flex-grow: 1;
+    overflow: auto;
+    cursor: text;
+}
+
+typeset-code, typeset-code * {
+    font-family: var(--fontCode);
+}
+
+typeset-linenumbers {
+    position: sticky;
+    display: block;
+    left: 0;
+    min-width: 3rem;
+    padding-inline-start: 1rem;
+    padding-inline-end: 1rem;
+    background-color: var(--secondaryBackground);
+    text-align: end;
+}
+
+typeset-linenumber {
+    display: block;
+}
+
+typeset-lines {
+    display: block;
+    flex-grow: 1;
+}
+
+typeset-lines, typeset-lines * {
+    user-select: text;
+}
+
+typeset-line {
+    display: block;
+    width: 100%;
+    white-space: pre;
+    overflow: auto;
+}
+
+typeset-line span:empty::after {
+    content: " ";
+    visibility: hidden;
+}
