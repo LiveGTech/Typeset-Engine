@@ -14,21 +14,35 @@ import * as typeset from "./typeset.js";
 
 const c = astronaut.components;
 
-export var CodeEditor = astronaut.component("CodeEditor", function(props, children) {
+export class Selection {
+    constructor(start, end) {
+        this.start = start;
+        this.end = end;
+    }
+}
+
+export var CodeEditor = astronaut.component("CodeEditor", function(props, children, inter) {
     typeset.init();
 
     var input = c.ElementNode("textarea") ();
     var lines = c.ElementNode("typeset-lines") ();
-    var lineNumbers = c.ElementNode("typeset-linenumbers") ();
 
-    var codeContainer = c.ElementNode("typeset-code") (
-        lineNumbers,
+    var scrollArea = c.ElementNode("typeset-scroll") (
         lines
     );
 
-    codeContainer.on("click", function() {
-        input.focus();
-    });
+    var codeContainer = c.ElementNode("typeset-code") (
+        input,
+        scrollArea
+    );
+
+    inter.getPrimarySelection = function() {
+        return new Selection(input.get().selectionStart, input.get().selectionEnd);
+    };
+
+    inter.setPrimarySelection = function(selection) {
+        input.get().setSelectionRange(selection.start, selection.end);
+    };
 
     input.on("input", function() {
         lines.setText(input.getValue());
@@ -38,20 +52,14 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
                 Text(line)
             ))
         );
+    });
 
-        lineNumbers.clear().add(
-            ...lines.find("typeset-line").getAll().map((line, i) => c.ElementNode("typeset-linenumber", {
-                styles: {
-                    "height": `${line.clientHeight}px`
-                }
-            }) (
-                Text(i + 1)
-            ))
-        );
+    input.on("scroll", function() {
+        scrollArea.get().scrollTop = input.get().scrollTop;
+        scrollArea.get().scrollLeft = input.get().scrollLeft;
     });
 
     return c.ElementNode("typeset-container") (
-        input,
         codeContainer
     );
 });
