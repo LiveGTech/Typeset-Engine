@@ -11,6 +11,8 @@ import * as $g from "https://opensource.liveg.tech/Adapt-UI/src/adaptui.js";
 import * as astronaut from "https://opensource.liveg.tech/Adapt-UI/astronaut/astronaut.js";
 
 import * as typeset from "./typeset.js";
+import * as parsers from "./parsers.js";
+import "./languages/javascript.js";
 
 const c = astronaut.components;
 
@@ -24,7 +26,12 @@ export class Selection {
 export var CodeEditor = astronaut.component("CodeEditor", function(props, children, inter) {
     typeset.init();
 
-    var input = c.ElementNode("textarea") ();
+    var input = c.ElementNode("textarea", {
+        attributes: {
+            "spellcheck": "false"
+        }
+    }) ();
+
     var lines = c.ElementNode("typeset-lines") ();
 
     var scrollArea = c.ElementNode("typeset-scroll") (
@@ -48,9 +55,19 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         lines.setText(input.getValue());
 
         lines.clear().add(
-            ...input.getValue().split("\n").map((line) => c.ElementNode("typeset-line") (
-                Text(line)
-            ))
+            ...input.getValue().split("\n").map(function(line) {
+                var parser = new parsers.registeredParsers[0](line);
+
+                parser.tokenise();
+
+                return c.ElementNode("typeset-line") (
+                    ...parser.tokens.map((token) => c.ElementNode("typeset-token", {
+                        attributes: {
+                            "type": token.type
+                        }
+                    }) (token.code))
+                );
+            })
         );
     });
 

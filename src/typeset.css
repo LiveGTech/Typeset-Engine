@@ -7,6 +7,8 @@
     Licensed by the LiveG Open-Source Licence, which can be found at LICENCE.md.
 */
 
+@import url("highlight.css");
+
 :root {
     --typeset-background: var(--secondaryBackground);
     --typeset-foreground: var(--secondaryText);
@@ -56,6 +58,11 @@ typeset-code > textarea {
     z-index: 1;
 }
 
+typeset-code > textarea::selection {
+    background-color: rgba(0, 0, 0, 0.2);
+    color: transparent;
+}
+
 typeset-scroll {
     display: block;
     width: 100%;
@@ -98,4 +105,8 @@ typeset-line::before {
 typeset-line span:empty::after {
     content: " ";
     visibility: hidden;
+}
+
+typeset-token {
+    display: inline;
 }
