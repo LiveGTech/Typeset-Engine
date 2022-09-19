@@ -10,6 +10,7 @@
 :root {
     --typeset-highlight-text: var(--secondaryText);
     --typeset-highlight-comment: rgba(0, 0, 0, 0.5);
+    --typeset-highlight-keyword: rgba(0, 0, 0, 1);
 }
 
 typeset-token[type="text"] {
@@ -19,4 +20,9 @@ typeset-token[type="text"] {
 typeset-token[type="comment"] {
     color: var(--typeset-highlight-comment);
     font-style: italic;
+}
+
+typeset-token[type="keyword"] {
+    color: var(--typeset-highlight-keyword);
+    font-weight: bold;
 }

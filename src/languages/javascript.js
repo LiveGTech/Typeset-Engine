@@ -9,12 +9,20 @@
 
 import * as parsers from "../parsers.js";
 
+const KEYWORDS = ["await", "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete", "do", "else", "enum", "export", "extends", "false", "finally", "for", "function", "if", "implements", "import", "in", "instanceof", "interface", "let", "new", "null", "package", "private", "protected", "public", "return", "super", "switch", "static", "this", "throw", "try", "True", "typeof", "var", "void", "while", "with", "yield"];
+
 export class JavascriptParser extends parsers.Parser {
     tokenise() {
         while (this.remainingLine.length > 0) {
             if (this.matchesToken("\\/\\/.*?$")) {
                 // Comment match
                 this.addToken("comment");
+                continue;
+            }
+
+            if (this.matchesTokens(KEYWORDS)) {
+                // Keyword match
+                this.addToken("keyword");
                 continue;
             }
 

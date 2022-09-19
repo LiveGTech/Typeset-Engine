@@ -37,6 +37,19 @@ export class Parser {
         return false;
     }
 
+    matchesTokens(tokens) {
+        for (var i = 0; i < tokens.length; i++) {
+            if (this.remainingLine.startsWith(tokens[i])) {
+                this.currentToken = this.remainingLine.substring(0, tokens[i].length);
+                this.remainingLine = this.remainingLine.substring(tokens[i].length);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     addToken(type) {
         this.tokens.push(new Token(type, this.currentToken));
     }
