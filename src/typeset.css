@@ -63,6 +63,11 @@ typeset-code > textarea::selection {
     color: transparent;
 }
 
+typeset-code[wrap="true"] > textarea, typeset-code[wrap="true"] typeset-line {
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
+
 typeset-scroll {
     display: block;
     width: 100%;
@@ -76,7 +81,10 @@ typeset-scroll::-webkit-scrollbar-thumb {
 
 typeset-lines {
     display: block;
+    width: 100%;
+    min-height: 100%;
     flex-grow: 1;
+    counter-reset: line;
 }
 
 typeset-lines, typeset-lines * {
@@ -85,8 +93,9 @@ typeset-lines, typeset-lines * {
 
 typeset-line {
     display: block;
+    padding-inline-start: 3rem;
+    text-indent: -3rem;
     white-space: pre;
-    overflow: auto;
     counter-increment: line;
 }
 
