@@ -51,24 +51,45 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         input.get().setSelectionRange(selection.start, selection.end);
     };
 
-    input.on("input", function() {
-        lines.setText(input.getValue());
+    function createLineElement(line) {
+        var parser = new parsers.registeredParsers[0](line);
 
-        lines.clear().add(
-            ...input.getValue().split("\n").map(function(line) {
-                var parser = new parsers.registeredParsers[0](line);
+        parser.tokenise();
 
-                parser.tokenise();
-
-                return c.ElementNode("typeset-line") (
-                    ...parser.tokens.map((token) => c.ElementNode("typeset-token", {
-                        attributes: {
-                            "type": token.type
-                        }
-                    }) (token.code))
-                );
-            })
+        return c.ElementNode("typeset-line") (
+            ...parser.tokens.map((token) => c.ElementNode("typeset-token", {
+                attributes: {
+                    "type": token.type
+                }
+            }) (token.code))
         );
+    }
+
+    // TODO: Find line currently being edited and then render it only (with knock-on effects observed to render other affected lines)
+    function renderLine(lineIndex) {
+        var line = input.getValue().split("\n")[lineIndex];
+        var lineElement = $g.sel(lines.find("typeset-line").getAll()[lineIndex]);
+        var parser = new parsers.registeredParsers[0](line);
+
+        parser.tokenise();
+
+        lineElement.clear().add(
+            ...parser.tokens.map((token) => c.ElementNode("typeset-token", {
+                attributes: {
+                    "type": token.type
+                }
+            }) (token.code))
+        );
+    }
+
+    inter.render = function() {
+        lines.clear().add(
+            ...input.getValue().split("\n").map((line) => createLineElement(line))
+        );
+    };
+
+    input.on("input", function() {
+        inter.render();
     });
 
     input.on("scroll", function() {
