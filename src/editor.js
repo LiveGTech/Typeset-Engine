@@ -23,6 +23,28 @@ export class Selection {
     }
 }
 
+export class PositionVector {
+    constructor(lineIndex = 0, columnIndex = 0) {
+        /*
+            First line has index 0 (`lineIndex`), but is line 1 (`line`).
+            First character likewise has index 0, but is column 1 (`column`).
+            `line` and `column` are to be used mainly for displaying the
+            human-readable position only.
+        */
+
+        this.lineIndex = lineIndex;
+        this.columnIndex = columnIndex;
+    }
+
+    get line() {
+        return this.lineIndex + 1;
+    }
+
+    get column() {
+        return this.columnIndex + 1;
+    }
+}
+
 export var CodeEditor = astronaut.component("CodeEditor", function(props, children, inter) {
     typeset.init();
 
@@ -49,6 +71,15 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
     inter.setPrimarySelection = function(selection) {
         input.get().setSelectionRange(selection.start, selection.end);
+    };
+
+    inter.getPositionVector = function(index = inter.getPrimarySelection().start) {
+        var linesBeforeIndex = input.getValue().substring(0, index).split("\n");
+
+        return new PositionVector(
+            linesBeforeIndex.length - 1,
+            linesBeforeIndex[linesBeforeIndex.length - 1].length
+        );
     };
 
     function createLineElement(line) {
