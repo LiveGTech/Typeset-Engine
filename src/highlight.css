@@ -26,3 +26,11 @@ typeset-token[type="keyword"] {
     color: var(--typeset-highlight-keyword);
     font-weight: bold;
 }
+
+typeset-token[type="string"] {
+    color: green;
+}
+
+typeset-token[type="escape"] {
+    color: red;
+}

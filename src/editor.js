@@ -45,6 +45,21 @@ export class PositionVector {
     }
 }
 
+export var CodeLine = astronaut.component("CodeLine", function(props, children, inter) {
+    inter.getParserInstance = function() {
+        return props.parserInstance;
+    };
+
+    return c.ElementNode("typeset-line", props) (...children);
+});
+
+export var CodeToken = astronaut.component("CodeToken", function(props, children, inter) {
+    props.attributes ||= {};
+    props.attributes.type = props.type;
+
+    return c.ElementNode("typeset-token", props) (...children);
+});
+
 export var CodeEditor = astronaut.component("CodeEditor", function(props, children, inter) {
     typeset.init();
 
@@ -82,17 +97,16 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         );
     };
 
-    function createLineElement(line) {
-        var parser = new parsers.registeredParsers[0](line);
+    function createLineElement(line, previousLine = null) {
+        var parserInstance = new parsers.registeredParsers[0](
+            line,
+            previousLine != null ? previousLine.inter.getParserInstance().state : undefined
+        );
 
-        parser.tokenise();
+        parserInstance.tokenise();
 
-        return c.ElementNode("typeset-line") (
-            ...parser.tokens.map((token) => c.ElementNode("typeset-token", {
-                attributes: {
-                    "type": token.type
-                }
-            }) (token.code))
+        return CodeLine({parserInstance}) (
+            ...parserInstance.tokens.map((token) => CodeToken({type: token.type}) (token.code))
         );
     }
 
@@ -105,17 +119,19 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         parser.tokenise();
 
         lineElement.clear().add(
-            ...parser.tokens.map((token) => c.ElementNode("typeset-token", {
-                attributes: {
-                    "type": token.type
-                }
-            }) (token.code))
+            ...parser.tokens.map((token) => CodeToken({type: token.type}) (token.code))
         );
     }
 
     inter.render = function() {
+        var previousLine = null;
+
         lines.clear().add(
-            ...input.getValue().split("\n").map((line) => createLineElement(line))
+            ...input.getValue().split("\n").map(function(line) {
+                previousLine = createLineElement(line, previousLine);
+
+                return previousLine;
+            })
         );
     };
 

@@ -17,11 +17,16 @@ export class Token {
 }
 
 export class Parser {
-    constructor(line) {
+    constructor(line, previousState = {}) {
         this.line = line;
         this.remainingLine = line;
         this.tokens = [];
         this.currentToken = null;
+        this.state = {};
+
+        this.initState();
+
+        this.state = {...this.state, ...previousState};
     }
 
     matchesToken(token, contextAfter = ".*") {
@@ -50,8 +55,16 @@ export class Parser {
         return false;
     }
 
+    matchesTokenString(token) {
+        return this.matchesTokens(token);
+    }
+
     addToken(type) {
         this.tokens.push(new Token(type, this.currentToken));
+    }
+
+    initState() {
+        // To be optionally implemented by subclasses
     }
 
     tokenise() {
