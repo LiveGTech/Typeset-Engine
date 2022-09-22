@@ -15,10 +15,28 @@ export class JavascriptParser extends parsers.Parser {
     initState() {
         this.state.stringOpener = null;
         this.state.inTemplateString = false;
+        this.state.inBlockComment = false;
     }
 
     tokenise() {
         while (this.remainingLine.length > 0) {
+            if (this.state.inBlockComment) {
+                if (this.matchesToken("\\*\\/")) {
+                    // Block comment close match
+
+                    this.state.inBlockComment = false;
+
+                    this.addToken("comment");
+
+                    continue;
+                }
+
+                this.matchesToken("(?:[\\/*]+|.)");
+                this.addToken("comment");
+
+                continue;
+            }
+
             if (this.state.stringOpener != null) {
                 if (this.matchesToken("\\\\(?:[0-7]{2,3}|[1-7][0-7]{0,2})")) {
                     // Octal escape match
@@ -86,6 +104,16 @@ export class JavascriptParser extends parsers.Parser {
                 this.state.stringOpener = this.currentToken;
 
                 this.addToken("string");
+
+                continue;
+            }
+
+            if (this.matchesToken("\\/\\*")) {
+                // Block comment open match
+
+                this.state.inBlockComment = true;
+
+                this.addToken("comment");
 
                 continue;
             }
