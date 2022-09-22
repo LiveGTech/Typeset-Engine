@@ -96,7 +96,7 @@ export class JavascriptParser extends parsers.Parser {
                 continue;
             }
 
-            if (this.matchesTokens(KEYWORDS)) {
+            if (this.matchesToken(`\\b(?:${KEYWORDS.join("|")})\\b`)) {
                 // Keyword match
                 this.addToken("keyword");
                 continue;
