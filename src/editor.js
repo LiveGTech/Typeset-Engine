@@ -144,6 +144,8 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         scrollArea.get().scrollLeft = input.get().scrollLeft;
     });
 
+    inter.render();
+
     return c.ElementNode("typeset-container") (
         codeContainer
     );
