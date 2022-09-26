@@ -15,10 +15,13 @@ export class JavascriptParser extends parsers.Parser {
     initState() {
         this.state.stringOpener = null;
         this.state.inTemplateString = false;
+        this.state.inStringNewlineEscape = false;
         this.state.inBlockComment = false;
     }
 
     tokenise() {
+        this.state.inStringNewlineEscape = false;
+
         while (this.remainingLine.length > 0) {
             if (this.state.inBlockComment) {
                 if (this.matchesToken("\\*\\/")) {
@@ -58,7 +61,11 @@ export class JavascriptParser extends parsers.Parser {
 
                 if (this.matchesToken("\\\\$")) {
                     // End-of-line escape match
+
+                    this.state.inStringNewlineEscape = true;
+
                     this.addToken("escape");
+
                     continue;
                 }
 
@@ -146,7 +153,7 @@ export class JavascriptParser extends parsers.Parser {
             this.addToken("text");
         }
 
-        if (!this.state.inTemplateString) {
+        if (!this.state.inTemplateString && !this.state.inStringNewlineEscape) {
             this.state.stringOpener = null;
         }
     }
