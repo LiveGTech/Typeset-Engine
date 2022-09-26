@@ -11,6 +11,7 @@ import * as $g from "https://opensource.liveg.tech/Adapt-UI/src/adaptui.js";
 import * as astronaut from "https://opensource.liveg.tech/Adapt-UI/astronaut/astronaut.js";
 
 import * as typeset from "./typeset.js";
+import * as common from "./common.js";
 import * as parsers from "./parsers.js";
 import "./languages/javascript.js";
 
@@ -46,8 +47,19 @@ export class PositionVector {
 }
 
 export var CodeLine = astronaut.component("CodeLine", function(props, children, inter) {
+    var dirty = false;
+
     inter.getParserInstance = function() {
         return props.parserInstance;
+    };
+
+    // TODO: Use this for rendering viewport only as opposed to whole code
+    inter.isDirty = function() {
+        return dirty;
+    };
+
+    inter.makeDirty = function() {
+        dirty = true;
     };
 
     return c.ElementNode("typeset-line", props) (...children);
@@ -69,16 +81,19 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         }
     }) ();
 
-    var lines = c.ElementNode("typeset-lines") ();
+    var linesContainer = c.ElementNode("typeset-lines") ();
 
     var scrollArea = c.ElementNode("typeset-scroll") (
-        lines
+        linesContainer
     );
 
     var codeContainer = c.ElementNode("typeset-code") (
         input,
         scrollArea
     );
+
+    var lines = [];
+    var lineCache = {};
 
     inter.getPrimarySelection = function() {
         return new Selection(input.get().selectionStart, input.get().selectionEnd);
@@ -97,7 +112,21 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         );
     };
 
+    function updateLinesContainer() {
+        linesContainer.clear().add(...lines);
+    }
+
     function createLineElement(line, previousLine = null) {
+        var cacheHash = `${line}|${JSON.stringify(previousLine?.inter.getParserInstance().state || {})}`;
+
+        if (lineCache.hasOwnProperty(cacheHash)) {
+            var element = lineCache[cacheHash].copy();
+
+            element.inter = lineCache[cacheHash].inter;
+
+            return element;
+        }
+
         var parserInstance = new parsers.registeredParsers[0](
             line,
             previousLine != null ? previousLine.inter.getParserInstance().state : undefined
@@ -105,15 +134,19 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
         parserInstance.tokenise();
 
-        return CodeLine({parserInstance}) (
+        var element = CodeLine({parserInstance}) (
             ...parserInstance.tokens.map((token) => CodeToken({type: token.type}) (token.code))
         );
+
+        lineCache[cacheHash] = element;
+
+        return element;
     }
 
     // TODO: Find line currently being edited and then render it only (with knock-on effects observed to render other affected lines)
-    function renderLine(lineIndex) {
+    function renderLine(lineIndex = inter.getPositionVector().lineIndex) {
         var line = input.getValue().split("\n")[lineIndex];
-        var lineElement = $g.sel(lines.find("typeset-line").getAll()[lineIndex]);
+        var lineElement = lines[lineIndex];
         var parser = new parsers.registeredParsers[0](line);
 
         parser.tokenise();
@@ -121,18 +154,20 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         lineElement.clear().add(
             ...parser.tokens.map((token) => CodeToken({type: token.type}) (token.code))
         );
+
+        return lineElement;
     }
 
     inter.render = function() {
         var previousLine = null;
 
-        lines.clear().add(
-            ...input.getValue().split("\n").map(function(line) {
-                previousLine = createLineElement(line, previousLine);
+        lines = input.getValue().split("\n").map(function(line) {
+            previousLine = createLineElement(line, previousLine);
 
-                return previousLine;
-            })
-        );
+            return previousLine;
+        });
+
+        updateLinesContainer();
     };
 
     input.on("input", function() {
