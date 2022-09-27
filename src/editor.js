@@ -93,6 +93,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
     );
 
     var lines = [];
+    var oldLines = [];
     var lineCache = {};
 
     inter.getPrimarySelection = function() {
@@ -113,7 +114,34 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
     };
 
     function updateLinesContainer() {
-        linesContainer.clear().add(...lines);
+        oldLines.forEach(function(line) {
+            if (!lines.includes(line)) {
+                line.remove();
+
+                line.removed = true;
+            }
+        });
+
+        oldLines = oldLines.map((line) => line.removed ? null : line);
+
+        var lineCount = input.getValue().split("\n").length;
+        var previousLine = null;
+
+        for (var lineIndex = 0; lineIndex < lineCount; lineIndex++) {
+            if (lines[lineIndex] == oldLines[lineIndex]) {
+                continue;
+            }
+
+            if (previousLine != null) {
+                linesContainer.get().insertBefore(lines[lineIndex].get(), previousLine.get().nextSibling);
+            } else {
+                linesContainer.add(lines[lineIndex]);
+            }
+
+            previousLine = lines[lineIndex];
+        }
+
+        oldLines = [...lines];
     }
 
     function createLineElement(line, previousLine = null) {
@@ -158,11 +186,15 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         return lineElement;
     }
 
-    inter.render = function() {
+    inter.render = function(partial = true) {
         var previousLine = null;
 
-        lines = input.getValue().split("\n").map(function(line) {
-            previousLine = createLineElement(line, previousLine);
+        lines = input.getValue().split("\n").map(function(line, lineIndex) {
+            if (partial && lineIndex < inter.getPositionVector().lineIndex && lines[lineIndex] && lines[lineIndex].getText() == line) {
+                previousLine = lines[lineIndex];
+            } else {
+                previousLine = createLineElement(line, previousLine);
+            }
 
             return previousLine;
         });
@@ -172,6 +204,10 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
     input.on("input", function() {
         inter.render();
+    });
+
+    input.on("paste", function() {
+        inter.render(false); // TODO: Maybe come up with better solution than to just render everything
     });
 
     input.on("scroll", function() {
