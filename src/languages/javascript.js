@@ -9,14 +9,39 @@
 
 import * as parsers from "../parsers.js";
 
-const KEYWORDS = ["await", "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete", "do", "else", "enum", "export", "extends", "false", "finally", "for", "function", "if", "implements", "import", "in", "instanceof", "interface", "let", "new", "null", "package", "private", "protected", "public", "return", "super", "switch", "static", "this", "throw", "try", "True", "typeof", "var", "void", "while", "with", "yield"];
+const KEYWORDS = ["await", "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete", "do", "else", "enum", "export", "extends", "false", "finally", "for", "function", "if", "implements", "import", "in", "instanceof", "interface", "let", "new", "null", "package", "private", "protected", "public", "return", "super", "switch", "static", "this", "throw", "try", "true", "typeof", "var", "void", "while", "with", "yield"];
 
 export class JavascriptParser extends parsers.Parser {
     initState() {
-        this.state.stringOpener = null;
-        this.state.inTemplateString = false;
+        this.state.stringStack = [];
         this.state.inStringNewlineEscape = false;
         this.state.inBlockComment = false;
+
+        this.pushStringStateStackDefaults();
+    }
+
+    get stringStackLast() {
+        return this.state.stringStack[this.state.stringStack.length - 1];
+    }
+
+    set stringStackLast(value) {
+        this.state.stringStack[this.state.stringStack.length - 1] = value;
+    }
+
+    get inTemplatePlaceholderBelow() {
+        if (this.state.stringStack.length < 2) {
+            return false;
+        }
+
+        return this.state.stringStack[this.state.stringStack.length - 2].inTemplatePlaceholder;
+    }
+
+    pushStringStateStackDefaults() {
+        this.state.stringStack.push({
+            stringOpener: null,
+            inTemplateString: false,
+            inTemplatePlaceholder: false
+        });
     }
 
     tokenise() {
@@ -40,7 +65,7 @@ export class JavascriptParser extends parsers.Parser {
                 continue;
             }
 
-            if (this.state.stringOpener != null) {
+            if (this.stringStackLast.stringOpener != null && !this.stringStackLast.inTemplatePlaceholder) {
                 if (this.matchesToken("\\\\(?:[0-7]{2,3}|[1-7][0-7]{0,2})")) {
                     // Octal escape match
                     this.addToken("escape");
@@ -69,26 +94,50 @@ export class JavascriptParser extends parsers.Parser {
                     continue;
                 }
 
-                if (this.matchesToken("\\\\[bfnrtv0'\"\\\\]")) {
+                if (this.matchesToken("\\\\[bfnrtv0'\"`\\$\\\\]")) {
                     // Escape match
                     this.addToken("escape");
                     continue;
                 }
 
-                if (this.matchesTokenString(this.state.stringOpener)) {
-                    // String close match
+                if (this.stringStackLast.inTemplateString && this.matchesToken("\\$\\{")) {
+                    // Template placeholder open match
+
+                    this.stringStackLast.inTemplatePlaceholder = true;
+
+                    this.pushStringStateStackDefaults();
 
                     this.addToken("string");
 
-                    this.state.stringOpener = null;
-                    this.state.inTemplateString = false;
+                    continue;
+                }
+
+                if (this.matchesTokenString(this.stringStackLast.stringOpener)) {
+                    // String close match
+
+                    this.stringStackLast.stringOpener = null;
+                    this.stringStackLast.inTemplateString = false;
+
+                    this.addToken("string");
 
                     continue;
                 }
 
                 // String body match
 
-                this.matchesToken("(?:[^\"'`\\\\]+|.)");
+                this.matchesToken("(?:[^\"'`\\\\\\$]+|.)");
+                this.addToken("string");
+
+                continue;
+            }
+
+            if (this.inTemplatePlaceholderBelow && this.matchesToken("\\}")) {
+                // Template placeholder close match
+
+                this.state.stringStack.pop();
+
+                this.stringStackLast.inTemplatePlaceholder = false;
+
                 this.addToken("string");
 
                 continue;
@@ -97,8 +146,8 @@ export class JavascriptParser extends parsers.Parser {
             if (this.matchesToken("`")) {
                 // Template string open match
 
-                this.state.stringOpener = this.currentToken;
-                this.state.inTemplateString = true;
+                this.stringStackLast.stringOpener = this.currentToken;
+                this.stringStackLast.inTemplateString = true;
 
                 this.addToken("string");
 
@@ -108,7 +157,7 @@ export class JavascriptParser extends parsers.Parser {
             if (this.matchesToken("\"|'")) {
                 // String open match
 
-                this.state.stringOpener = this.currentToken;
+                this.stringStackLast.stringOpener = this.currentToken;
 
                 this.addToken("string");
 
@@ -153,8 +202,8 @@ export class JavascriptParser extends parsers.Parser {
             this.addToken("text");
         }
 
-        if (!this.state.inTemplateString && !this.state.inStringNewlineEscape) {
-            this.state.stringOpener = null;
+        if (!this.stringStackLast.inTemplateString && !this.state.inStringNewlineEscape) {
+            this.stringStackLast.stringOpener = null;
         }
     }
 }

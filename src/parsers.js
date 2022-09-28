@@ -26,7 +26,7 @@ export class Parser {
 
         this.initState();
 
-        this.state = {...this.state, ...previousState};
+        this.state = {...structuredClone(this.state), ...structuredClone(previousState)};
     }
 
     matchesToken(token, contextAfter = ".*") {
