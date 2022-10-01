@@ -81,7 +81,7 @@ typeset-scroll::-webkit-scrollbar-thumb {
 
 typeset-lines {
     display: block;
-    width: 100%;
+    width: fit-content;
     min-height: 100%;
     flex-grow: 1;
     counter-reset: line;
@@ -105,6 +105,7 @@ typeset-line::before {
     left: 0;
     width: 2rem;
     padding-inline-end: 1rem;
+    z-index: 1;
     background-color: var(--typeset-background);
     color: var(--typeset-lineNumbers);
     text-align: end;

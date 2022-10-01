@@ -10,7 +10,12 @@
 :root {
     --typeset-highlight-text: var(--secondaryText);
     --typeset-highlight-comment: rgba(0, 0, 0, 0.5);
-    --typeset-highlight-keyword: rgba(0, 0, 0, 1);
+    --typeset-highlight-keyword: #c09000;
+    --typeset-highlight-valueKeyword: #0060c0;
+    --typeset-highlight-string: #00a020;
+    --typeset-highlight-escape: #e07000;
+    --typeset-highlight-identifier: #0070e0;
+    --typeset-highlight-callIdentifier: #8000e0;
 }
 
 typeset-token[type="text"] {
@@ -27,10 +32,23 @@ typeset-token[type="keyword"] {
     font-weight: bold;
 }
 
+typeset-token[type="valueKeyword"] {
+    color: var(--typeset-highlight-valueKeyword);
+    font-weight: bold;
+}
+
 typeset-token[type="string"] {
-    color: green;
+    color: var(--typeset-highlight-string);
 }
 
 typeset-token[type="escape"] {
-    color: red;
+    color: var(--typeset-highlight-escape);
+}
+
+typeset-token[type="identifier"] {
+    color: var(--typeset-highlight-identifier);
+}
+
+typeset-token[type="callIdentifier"] {
+    color: var(--typeset-highlight-callIdentifier);
 }

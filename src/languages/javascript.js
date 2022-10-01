@@ -9,7 +9,8 @@
 
 import * as parsers from "../parsers.js";
 
-const KEYWORDS = ["await", "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete", "do", "else", "enum", "export", "extends", "false", "finally", "for", "function", "get", "if", "implements", "import", "in", "instanceof", "interface", "let", "new", "null", "package", "private", "protected", "public", "return", "set", "super", "switch", "static", "this", "throw", "try", "true", "typeof", "var", "void", "while", "with", "yield"];
+const KEYWORDS = ["as", "await", "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete", "do", "else", "enum", "export", "extends", "finally", "for", "from", "function", "get", "if", "implements", "import", "in", "instanceof", "interface", "let", "new", "package", "private", "protected", "public", "return", "set", "switch", "static", "throw", "try", "typeof", "var", "void", "while", "with", "yield"];
+const VALUE_KEYWORDS = ["false", "Infinity", "NaN", "null", "super", "this", "true", "undefined"];
 
 export class JavascriptParser extends parsers.Parser {
     initState() {
@@ -180,20 +181,33 @@ export class JavascriptParser extends parsers.Parser {
                 continue;
             }
 
-            if (this.matchesToken(`\\b(?:${KEYWORDS.join("|")})\\b`)) {
+            if (!this.remainingLine.startsWith(".") && this.matchesToken(`\\b(?:${KEYWORDS.join("|")})\\b`)) {
                 // Keyword match
                 this.addToken("keyword");
+                continue;
+            }
+
+            if (!this.remainingLine.startsWith(".") && this.matchesToken(`\\b(?:${VALUE_KEYWORDS.join("|")})\\b`)) {
+                // Keyword match
+                this.addToken("valueKeyword");
+                continue;
+            }
+
+            if (this.matchesToken("[a-zA-Z_$][a-zA-Z0-9_$]*", "\\s*\\(")) {
+                // Function call identifier
+                this.addToken("callIdentifier");
+                continue;
+            }
+
+            if (this.matchesToken("[a-zA-Z_$][a-zA-Z0-9_$]*")) {
+                // Generic identifier
+                this.addToken("identifier");
                 continue;
             }
 
             if (this.matchesToken("\\s+")) {
                 // Whitespace match
                 this.addToken("whitespace");
-                continue;
-            }
-
-            if (this.matchesToken("[a-zA-Z_$][a-zA-Z0-9_$]*")) {
-                this.addToken("text");
                 continue;
             }
 
