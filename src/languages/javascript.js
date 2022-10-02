@@ -10,7 +10,7 @@
 import * as parsers from "../parsers.js";
 
 const KEYWORDS = ["as", "await", "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete", "do", "else", "enum", "export", "extends", "finally", "for", "from", "function", "get", "if", "implements", "import", "in", "instanceof", "interface", "let", "new", "package", "private", "protected", "public", "return", "set", "switch", "static", "throw", "try", "typeof", "var", "void", "while", "with", "yield"];
-const VALUE_KEYWORDS = ["false", "Infinity", "NaN", "null", "super", "this", "true", "undefined"];
+const VALUE_KEYWORDS = ["constructor", "false", "Infinity", "NaN", "null", "super", "this", "true", "undefined"];
 const OPERATORS = ["===", "!==", "==", "!=", "=", "+=", "++", "+", "-=", "--", "-", "*=", "*", "/=", "/", "%=", "%", "**=", "**", "<<=", "<<", "<=", "<", ">>>=", ">>>", ">>=", ">>", ">=", ">", "&&=", "&&", "&=", "&", "^=", "^", "||=", "||", "|=", "|", "??=", "??"];
 
 export class JavascriptParser extends parsers.Parser {
