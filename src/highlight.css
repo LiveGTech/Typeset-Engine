@@ -12,6 +12,7 @@
     --typeset-highlight-comment: rgba(0, 0, 0, 0.5);
     --typeset-highlight-keyword: #c09000;
     --typeset-highlight-valueKeyword: #0060c0;
+    --typeset-highlight-operator: #c000c0;
     --typeset-highlight-string: #00a020;
     --typeset-highlight-escape: #e07000;
     --typeset-highlight-identifier: #0070e0;
@@ -35,6 +36,10 @@ typeset-token[type="keyword"] {
 typeset-token[type="valueKeyword"] {
     color: var(--typeset-highlight-valueKeyword);
     font-weight: bold;
+}
+
+typeset-token[type="operator"] {
+    color: var(--typeset-highlight-operator);
 }
 
 typeset-token[type="string"] {
