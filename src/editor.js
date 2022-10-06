@@ -45,6 +45,15 @@ export class PositionVector {
         return this.columnIndex + 1;
     }
 
+    static fromIndex(text, index) {
+        var linesBeforeIndex = text.substring(0, index).split("\n");
+
+        return new this(
+            linesBeforeIndex.length - 1,
+            linesBeforeIndex[linesBeforeIndex.length - 1].length
+        );
+    }
+
     toIndex(text) {
         var selectedLines = text.split("\n").slice(0, this.lineIndex + 1);
 
@@ -53,8 +62,6 @@ export class PositionVector {
         // Add 1 for each line to count newlines; subtract 1 to ignore final newline
         return selectedLines.map((line) => line.length + 1).reduce((accumulator, value) => accumulator + value, 0) - 1;
     }
-
-    // TODO: It would be good to also have a `fromIndex` method — possibly move `getPositionVector`'s implementation into here
 }
 
 export var CodeLine = astronaut.component("CodeLine", function(props, children, inter) {
@@ -115,12 +122,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
     };
 
     inter.getPositionVector = function(index = inter.getPrimarySelection().start) {
-        var linesBeforeIndex = input.getValue().substring(0, index).split("\n");
-
-        return new PositionVector(
-            linesBeforeIndex.length - 1,
-            linesBeforeIndex[linesBeforeIndex.length - 1].length
-        );
+        return PositionVector.fromIndex(input.getValue(), index);
     };
 
     inter.getViewportVisibleContentsSelection = function() {
@@ -167,7 +169,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         oldLines = [...lines];
     }
 
-    function createLineElement(line, previousLine = null) {
+    function createLineElement(line, previousLine = null, parser = parsers.Parser, cache = true) {
         var cacheHash = `${line}|${JSON.stringify(previousLine?.inter.getParserInstance().state || {})}`;
 
         if (lineCache.hasOwnProperty(cacheHash)) {
@@ -178,7 +180,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
             return element;
         }
 
-        var parserInstance = new parsers.registeredParsers[0](
+        var parserInstance = new parser(
             line,
             previousLine != null ? previousLine.inter.getParserInstance().state : undefined
         );
@@ -189,7 +191,9 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
             ...parserInstance.tokens.map((token) => CodeToken({type: token.type}) (token.code))
         );
 
-        lineCache[cacheHash] = element;
+        if (cache) {
+            lineCache[cacheHash] = element;
+        }
 
         return element;
     }
@@ -198,7 +202,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
     function renderLine(lineIndex = inter.getPositionVector().lineIndex) {
         var line = input.getValue().split("\n")[lineIndex];
         var lineElement = lines[lineIndex];
-        var parser = new parsers.registeredParsers[0](line);
+        var parser = new parser(line);
 
         parser.tokenise();
 
@@ -211,18 +215,28 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
     inter.render = function(partial = true) {
         var previousLine = null;
+        var viewportSelection = inter.getViewportVisibleContentsSelection();
+        var lazyRenderMinLineIndex = PositionVector.fromIndex(input.getValue(), viewportSelection.start).lineIndex;
+        var lazyRenderMaxLineIndex = PositionVector.fromIndex(input.getValue(), viewportSelection.end).lineIndex;
 
         lines = input.getValue().split("\n").map(function(line, lineIndex) {
+            var isDirtyAndVisible = lines[lineIndex]?.inter.isDirty() && lineIndex >= lazyRenderMinLineIndex && lineIndex <= lazyRenderMaxLineIndex;
+
             if (
                 partial &&
                 lineIndex < inter.getPositionVector().lineIndex &&
                 lines[lineIndex] &&
-                !lines[lineIndex].inter.isDirty() &&
+                !isDirtyAndVisible &&
                 lines[lineIndex].getText() == line
             ) {
                 previousLine = lines[lineIndex];
+            } else if (false) { // } else if (lineIndex > lazyRenderMaxLineIndex) {
+                // TODO: Fix inserting lines when dirty
+                previousLine = createLineElement(line, previousLine, parsers.Parser, false);
+
+                previousLine.inter.makeDirty();
             } else {
-                previousLine = createLineElement(line, previousLine);
+                previousLine = createLineElement(line, previousLine, parsers.registeredParsers[0]);
             }
 
             return previousLine;
@@ -242,6 +256,8 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
     input.on("scroll", function() {
         scrollArea.get().scrollTop = input.get().scrollTop;
         scrollArea.get().scrollLeft = input.get().scrollLeft;
+
+        inter.render();
     });
 
     inter.render();
