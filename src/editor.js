@@ -44,6 +44,17 @@ export class PositionVector {
     get column() {
         return this.columnIndex + 1;
     }
+
+    toIndex(text) {
+        var selectedLines = text.split("\n").slice(0, this.lineIndex + 1);
+
+        selectedLines[selectedLines.length - 1] = selectedLines[selectedLines.length - 1].substring(0, this.columnIndex);
+
+        // Add 1 for each line to count newlines; subtract 1 to ignore final newline
+        return selectedLines.map((line) => line.length + 1).reduce((accumulator, value) => accumulator + value, 0) - 1;
+    }
+
+    // TODO: It would be good to also have a `fromIndex` method — possibly move `getPositionVector`'s implementation into here
 }
 
 export var CodeLine = astronaut.component("CodeLine", function(props, children, inter) {
@@ -53,7 +64,6 @@ export var CodeLine = astronaut.component("CodeLine", function(props, children, 
         return props.parserInstance;
     };
 
-    // TODO: Use this for rendering viewport only as opposed to whole code
     inter.isDirty = function() {
         return dirty;
     };
@@ -110,6 +120,19 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         return new PositionVector(
             linesBeforeIndex.length - 1,
             linesBeforeIndex[linesBeforeIndex.length - 1].length
+        );
+    };
+
+    inter.getViewportVisibleContentsSelection = function() {
+        var lineHeight = lines[0]?.get().clientHeight;
+
+        return new Selection(
+            new PositionVector(
+                lines.length != 0 ? Math.floor(scrollArea.get().scrollTop / lineHeight) : 0
+            ).toIndex(input.getValue()),
+            new PositionVector(
+                lines.length != 0 ? Math.floor((scrollArea.get().scrollTop + scrollArea.get().clientHeight) / lineHeight) : 0
+            ).toIndex(input.getValue())
         );
     };
 
@@ -190,7 +213,13 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         var previousLine = null;
 
         lines = input.getValue().split("\n").map(function(line, lineIndex) {
-            if (partial && lineIndex < inter.getPositionVector().lineIndex && lines[lineIndex] && lines[lineIndex].getText() == line) {
+            if (
+                partial &&
+                lineIndex < inter.getPositionVector().lineIndex &&
+                lines[lineIndex] &&
+                !lines[lineIndex].inter.isDirty() &&
+                lines[lineIndex].getText() == line
+            ) {
                 previousLine = lines[lineIndex];
             } else {
                 previousLine = createLineElement(line, previousLine);
