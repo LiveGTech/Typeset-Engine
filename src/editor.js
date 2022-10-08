@@ -17,6 +17,14 @@ import "./languages/javascript.js";
 
 const c = astronaut.components;
 
+const STATS_TO_LOG = [];
+
+function logStats(statsType, stats) {
+    if (STATS_TO_LOG.includes(statsType)) {
+        console.log(statsType, Date.now(), stats);
+    }
+}
+
 export class Selection {
     constructor(start, end) {
         this.start = start;
@@ -118,7 +126,6 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         scrollArea
     );
 
-    var previousInputValue = null;
     var lines = [];
     var oldLines = [];
     var lineCache = {};
@@ -149,11 +156,14 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
     };
 
     function updateLinesContainer() {
+        var updateStats = {keep: 0, add: 0, remove: 0};
+
         oldLines.forEach(function(line) {
             if (!lines.includes(line)) {
                 line.remove();
 
                 line.removed = true;
+                updateStats.remove++;
             }
         });
 
@@ -164,19 +174,25 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
         for (var lineIndex = 0; lineIndex < lineCount; lineIndex++) {
             if (lines[lineIndex] == oldLines[lineIndex]) {
+                previousLine = lines[lineIndex];
+                updateStats.keep++;
+
                 continue;
             }
 
-            if (previousLine != null) {
+            if (lineIndex > 0) {
                 linesContainer.get().insertBefore(lines[lineIndex].get(), previousLine.get().nextSibling);
             } else {
                 linesContainer.add(lines[lineIndex]);
             }
 
             previousLine = lines[lineIndex];
+            updateStats.add++;
         }
 
         oldLines = [...lines];
+
+        logStats("update", updateStats);
     }
 
     function renderLine(lineElement, cache = true) {
@@ -226,15 +242,15 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         var previousLine = null;
         var viewportSelection = inter.getViewportVisibleContentsSelection();
         var lazyRenderMinLineIndex = PositionVector.fromIndex(input.getValue(), viewportSelection.start).lineIndex;
-        var lazyRenderMaxLineIndex = PositionVector.fromIndex(input.getValue(), viewportSelection.end).lineIndex - 3;
+        var lazyRenderMaxLineIndex = PositionVector.fromIndex(input.getValue(), viewportSelection.end).lineIndex;
         var renderStats = {renderDirty: 0, getFromCache: 0, createUnrendered: 0, createRendered: 0};
 
         lines = input.getValue().split("\n").map(function(line, lineIndex) {
             var isDirtyAndVisible = lines[lineIndex]?.inter.isDirty() && lineIndex >= lazyRenderMinLineIndex && lineIndex <= lazyRenderMaxLineIndex;
 
+            // FIXME: State can change but this will still match
             if (
                 partial &&
-                input.getValue() == previousInputValue &&
                 lines[lineIndex] &&
                 lines[lineIndex].getText() == line
             ) {
@@ -269,11 +285,9 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
             return previousLine;
         });
 
-        previousInputValue = input.getValue();
-
         updateLinesContainer();
 
-        console.log(Date.now(), renderStats);
+        logStats("render", renderStats);
     };
 
     input.on("input", function() {
