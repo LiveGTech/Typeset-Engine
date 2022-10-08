@@ -271,7 +271,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
                 previousLine = lines[lineIndex];
             } else if (lineIndex > lazyRenderMaxLineIndex) {
-                previousLine = createLineElement(line, previousLine, parsers.Parser, true, `${line}|{}`);
+                previousLine = createLineElement(line, previousLine, parsers.DirtyParser, true, `${line}|{}`);
 
                 previousLine.inter.makeDirty();
 

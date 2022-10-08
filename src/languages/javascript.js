@@ -182,13 +182,13 @@ export class JavascriptParser extends parsers.Parser {
                 continue;
             }
 
-            if (!this.remainingLine.startsWith(".") && this.matchesToken(`\\b(?:${KEYWORDS.join("|")})\\b`)) {
+            if (this.currentToken != "." && this.matchesToken(`\\b(?:${KEYWORDS.join("|")})\\b`)) {
                 // Keyword match
                 this.addToken("keyword");
                 continue;
             }
 
-            if (!this.remainingLine.startsWith(".") && this.matchesToken(`\\b(?:${VALUE_KEYWORDS.join("|")})\\b`)) {
+            if (this.currentToken != "." && this.matchesToken(`\\b(?:${VALUE_KEYWORDS.join("|")})\\b`)) {
                 // Keyword match
                 this.addToken("valueKeyword");
                 continue;

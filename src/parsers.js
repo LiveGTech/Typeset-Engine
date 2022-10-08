@@ -74,6 +74,12 @@ export class Parser {
     }
 }
 
+export class DirtyParser extends Parser {
+    initState() {
+        this.state._dirty = true;
+    }
+}
+
 export function register(parser) {
     this.registeredParsers.push(parser);
 }
