@@ -78,6 +78,11 @@ export class DirtyParser extends Parser {
     initState() {
         this.state._dirty = true;
     }
+
+    tokenise() {
+        this.matchesToken(".*");
+        this.addToken("unrendered");
+    }
 }
 
 export function register(parser) {

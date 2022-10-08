@@ -8,6 +8,6 @@
 */
 
 export function compareObjects(a, b) {
-    console.log(a, b);
+    console.log(a, b, JSON.stringify(a) == JSON.stringify(b));
     return JSON.stringify(a) == JSON.stringify(b);
 }

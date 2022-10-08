@@ -17,7 +17,14 @@ import "./languages/javascript.js";
 
 const c = astronaut.components;
 
-const STATS_TO_LOG = [];
+const STATS_TO_LOG = ["render"];
+const LAZY_RENDER_PADDING = 10;
+
+export const renderModes = {
+    FULL: 0,
+    PARTIAL: 1,
+    FORCE_VISIBLE: 2
+};
 
 function logStats(statsType, stats) {
     if (STATS_TO_LOG.includes(statsType)) {
@@ -129,6 +136,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
     var lines = [];
     var oldLines = [];
     var lineCache = {};
+    var lastActivity = Date.now();
 
     inter.getPrimarySelection = function() {
         return new Selection(input.get().selectionStart, input.get().selectionEnd);
@@ -195,7 +203,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         logStats("update", updateStats);
     }
 
-    function renderLine(lineElement, cache = true) {
+    function renderLine(lineElement, previousLine = null, cache = true) {
         var parserInstance = parserInstance = lineElement.inter.getParserInstance();
 
         parserInstance.tokenise();
@@ -206,7 +214,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
         lineElement.inter.clearDirty();
 
-        var cacheHash = `${lineElement.getText()}|${JSON.stringify(lineElement.inter.getParserInstance().previousState || {})}`;
+        var cacheHash = `${lineElement.getText()}|${JSON.stringify(previousLine?.inter.getParserInstance().previousState || {})}`;
 
         if (cache) {
             lineCache[cacheHash] = lineElement;
@@ -233,28 +241,31 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
         var element = CodeLine({parserInstance}) ();
 
-        renderLine(element, cache);
+        renderLine(element, previousLine, cache);
 
         return element;
     }
 
-    inter.render = function(partial = true) {
+    inter.render = function(renderMode = renderModes.PARTIAL) {
         var previousLine = null;
         var viewportSelection = inter.getViewportVisibleContentsSelection();
-        var lazyRenderMinLineIndex = PositionVector.fromIndex(input.getValue(), viewportSelection.start).lineIndex;
-        var lazyRenderMaxLineIndex = PositionVector.fromIndex(input.getValue(), viewportSelection.end).lineIndex;
+        var lazyRenderMinLineIndex = PositionVector.fromIndex(input.getValue(), viewportSelection.start).lineIndex - LAZY_RENDER_PADDING;
+        var lazyRenderMaxLineIndex = PositionVector.fromIndex(input.getValue(), viewportSelection.end).lineIndex + LAZY_RENDER_PADDING;
         var renderStats = {renderDirty: 0, getFromCache: 0, createUnrendered: 0, createRendered: 0};
 
         lines = input.getValue().split("\n").map(function(line, lineIndex) {
-            var isDirtyAndVisible = lines[lineIndex]?.inter.isDirty() && lineIndex >= lazyRenderMinLineIndex && lineIndex <= lazyRenderMaxLineIndex;
+            var isVisible = lineIndex >= lazyRenderMinLineIndex && lineIndex <= lazyRenderMaxLineIndex;
 
             // FIXME: State can change but this will still match
             if (
-                partial &&
+                (
+                    renderMode == renderModes.PARTIAL ||
+                    (renderMode == renderModes.FORCE_VISIBLE && !isVisible)
+                ) &&
                 lines[lineIndex] &&
                 lines[lineIndex].getText() == line
             ) {
-                if (isDirtyAndVisible) {
+                if (lines[lineIndex]?.inter.isDirty() && isVisible) {
                     var parser = parsers.registeredParsers[0];
 
                     lines[lineIndex].inter.setParserInstance(new parser(
@@ -262,7 +273,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
                         previousLine != null ? previousLine.inter.getParserInstance().state : undefined
                     ));
 
-                    renderLine(lines[lineIndex]);
+                    renderLine(lines[lineIndex], previousLine);
 
                     renderStats.renderDirty++;
                 } else {
@@ -270,8 +281,8 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
                 }
 
                 previousLine = lines[lineIndex];
-            } else if (lineIndex > lazyRenderMaxLineIndex) {
-                previousLine = createLineElement(line, previousLine, parsers.DirtyParser, true, `${line}|{}`);
+            } else if (lineIndex > lazyRenderMaxLineIndex && renderMode != renderModes.FULL) {
+                previousLine = createLineElement(line, previousLine, parsers.DirtyParser, false, `${line}|{}`);
 
                 previousLine.inter.makeDirty();
 
@@ -292,10 +303,8 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
     input.on("input", function() {
         inter.render();
-    });
 
-    input.on("paste", function() {
-        inter.render(false); // TODO: Maybe come up with better solution than to just render everything
+        lastActivity = Date.now();
     });
 
     input.on("scroll", function() {
@@ -303,6 +312,22 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         scrollArea.get().scrollLeft = input.get().scrollLeft;
 
         inter.render();
+
+        lastActivity = Date.now();
+    });
+
+    setInterval(function() {
+        var topVisibleLineIndex = PositionVector.fromIndex(input.getValue(), viewportSelection.start).lineIndex;
+
+        if (topVisibleLineIndex < LAZY_RENDER_PADDING) {
+            return;
+        }
+
+        if (Date.now() - lastActivity >= 500) {
+            inter.render(renderModes.FORCE_VISIBLE);
+
+            lastActivity = Date.now();
+        }
     });
 
     inter.render();
