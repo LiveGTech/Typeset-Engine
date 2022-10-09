@@ -17,7 +17,7 @@ import "./languages/javascript.js";
 
 const c = astronaut.components;
 
-const STATS_TO_LOG = ["render"];
+const STATS_TO_LOG = [];
 const LAZY_RENDER_PADDING = 10;
 
 export const renderModes = {
@@ -317,7 +317,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
     });
 
     setInterval(function() {
-        var topVisibleLineIndex = PositionVector.fromIndex(input.getValue(), viewportSelection.start).lineIndex;
+        var topVisibleLineIndex = PositionVector.fromIndex(input.getValue(), inter.getViewportVisibleContentsSelection().start).lineIndex;
 
         if (topVisibleLineIndex < LAZY_RENDER_PADDING) {
             return;
