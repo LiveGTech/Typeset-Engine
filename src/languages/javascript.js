@@ -135,6 +135,7 @@ export class JavascriptParser extends parsers.Parser {
 
             if (this.inTemplatePlaceholderBelow && this.matchesToken("\\}")) {
                 // Template placeholder close match
+                // TODO: Don't match this when bracket level > 0
 
                 this.state.stringStack.pop();
 
