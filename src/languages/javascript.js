@@ -207,6 +207,17 @@ export class JavascriptParser extends parsers.Parser {
                 continue;
             }
 
+            if (
+                this.matchesToken("0(x|X)[0-9a-fA-F]+n?") || // Hexadecimal numbers
+                this.matchesToken("0(b|B)[01]+n?") || // Binary numbers
+                this.matchesToken("0[0-7]+n?") || // Octal numbers
+                this.matchesToken("(?:(?:\\b[0-9]+(\\.)[0-9]+[eE][+-]?[0-9]+\\b)(?:\\b[0-9]+(\\.)[eE][+-]?[0-9]+\\b)|(?:\\B(\\.)[0-9]+[eE][+-]?[0-9]+\\b)|(?:\\b[0-9]+[eE][+-]?[0-9]+\\b)|(?:\\b[0-9]+(\\.)[0-9]+\\b)|(?:\\b[0-9]+(\\.)\\B)|(?:\\B(\\.)[0-9]+\\b)|(?:\\b[0-9]+))n?") // Scientific format numbers
+            ) {
+                // Number literal
+                this.addToken("number");
+                continue;
+            }
+
             if (this.matchesTokens(OPERATORS)) {
                 // Operator
                 this.addToken("operator");

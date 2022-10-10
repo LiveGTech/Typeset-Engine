@@ -17,6 +17,7 @@
     --typeset-highlight-escape: #e07000;
     --typeset-highlight-identifier: #0070e0;
     --typeset-highlight-callIdentifier: #8000e0;
+    --typeset-highlight-number: #00b0e0;
 }
 
 typeset-token[type="text"] {
@@ -61,4 +62,8 @@ typeset-token[type="identifier"] {
 
 typeset-token[type="callIdentifier"] {
     color: var(--typeset-highlight-callIdentifier);
+}
+
+typeset-token[type="number"] {
+    color: var(--typeset-highlight-number);
 }
