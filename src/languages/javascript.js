@@ -183,6 +183,13 @@ export class JavascriptParser extends parsers.Parser {
                 continue;
             }
 
+            if (this.matchesToken(`\\(|\\)|\\{|\\}|\\[|\\]`)) {
+                // Bracket match
+                // TODO: Classify opening/closing brackets and bracket type
+                this.addToken("bracket");
+                continue;
+            }
+
             if (this.currentToken != "." && this.matchesToken(`\\b(?:${KEYWORDS.join("|")})\\b`)) {
                 // Keyword match
                 this.addToken("keyword");
