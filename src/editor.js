@@ -298,6 +298,11 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
         updateLinesContainer();
 
+        codeContainer.get().style.setProperty(
+            "--typeset-lineNumberChars",
+            `${Math.max(String(lines.length).length, 3)}`
+        );
+
         logStats("render", renderStats);
     };
 
