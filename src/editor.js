@@ -17,7 +17,7 @@ import "./languages/javascript.js";
 
 const c = astronaut.components;
 
-const STATS_TO_LOG = ["update", "render"];
+const STATS_TO_LOG = [];
 const LAZY_RENDER_PADDING = 10;
 
 export const renderModes = {
