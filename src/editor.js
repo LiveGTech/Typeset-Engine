@@ -17,7 +17,7 @@ import "./languages/javascript.js";
 
 const c = astronaut.components;
 
-const STATS_TO_LOG = [];
+const STATS_TO_LOG = ["update", "render"];
 const LAZY_RENDER_PADDING = 10;
 
 export const renderModes = {
@@ -188,8 +188,10 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
                 continue;
             }
 
-            if (lineIndex > 0) {
+            if (previousLine != null) {
                 linesContainer.get().insertBefore(lines[lineIndex].get(), previousLine.get().nextSibling);
+            } else if (linesContainer.get().firstChild) {
+                linesContainer.get().insertBefore(lines[lineIndex].get(), linesContainer.get().firstChild);
             } else {
                 linesContainer.add(lines[lineIndex]);
             }
@@ -316,13 +318,6 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
     });
 
     setInterval(function() {
-        var topVisibleLineIndex = PositionVector.fromIndex(input.getValue(), inter.getViewportVisibleContentsSelection().start).lineIndex;
-
-        // FIXME: Need fixes to remove this condition so that state of subsequent lines can be updated when at top of file
-        if (topVisibleLineIndex < LAZY_RENDER_PADDING) {
-            return;
-        }
-
         if (Date.now() - lastActivity >= 500) {
             inter.render(renderModes.FORCE_VISIBLE);
 
