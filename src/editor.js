@@ -11,7 +11,6 @@ import * as $g from "https://opensource.liveg.tech/Adapt-UI/src/adaptui.js";
 import * as astronaut from "https://opensource.liveg.tech/Adapt-UI/astronaut/astronaut.js";
 
 import * as typeset from "./typeset.js";
-import * as common from "./common.js";
 import * as parsers from "./parsers.js";
 import "./languages/javascript.js";
 
