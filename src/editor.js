@@ -318,7 +318,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
     setInterval(function() {
         var topVisibleLineIndex = PositionVector.fromIndex(input.getValue(), inter.getViewportVisibleContentsSelection().start).lineIndex;
 
-            // FIXME: Need fixes to remove this condition so that state of subsequent lines can be updated when at top of file
+        // FIXME: Need fixes to remove this condition so that state of subsequent lines can be updated when at top of file
         if (topVisibleLineIndex < LAZY_RENDER_PADDING) {
             return;
         }
