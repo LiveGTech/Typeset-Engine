@@ -132,7 +132,11 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         scrollArea
     );
 
-    var editorContainer = c.ElementNode("typeset-container") (
+    var editorContainer = c.ElementNode("typeset-container", {
+        attributes: {
+            "dir": "ltr"
+        }
+    }) (
         codeContainer
     );
 
