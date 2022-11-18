@@ -132,6 +132,10 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         scrollArea
     );
 
+    var editorContainer = c.ElementNode("typeset-container") (
+        codeContainer
+    );
+
     var lines = [];
     var oldLines = [];
     var lineCache = {};
@@ -329,9 +333,17 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         }
     });
 
+    input.setValue(props.code || "");
+
+    if (props.readOnly) {
+        input.setAttribute("disabled", true);
+    }
+
+    if (props.adaptiveHeight) {
+        editorContainer.setAttribute("adaptiveheight", true);
+    }
+
     inter.render();
 
-    return c.ElementNode("typeset-container") (
-        codeContainer
-    );
+    return editorContainer;
 });

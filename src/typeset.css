@@ -24,6 +24,10 @@ typeset-container {
     overflow: hidden;
 }
 
+typeset-container[adaptiveheight] {
+    height: unset;
+}
+
 typeset-code {
     --typeset-lineNumberChars: 3;
     --typeset-lineNumberWidth: calc(2rem + calc(calc(var(--typeset-lineNumberChars) - 3) * 0.6rem));
@@ -58,6 +62,10 @@ typeset-code > textarea {
     outline: none;
     resize: none;
     z-index: 1;
+}
+
+typeset-code > textarea:disabled {
+    opacity: 1;
 }
 
 typeset-code > textarea::selection {

@@ -14,6 +14,10 @@ export * from "./editor.js";
 var initCalled = false;
 
 export function init() {
+    if (initCalled) {
+        return;
+    }
+
     initCalled = true;
 
     $g.waitForLoad().then(function() {
