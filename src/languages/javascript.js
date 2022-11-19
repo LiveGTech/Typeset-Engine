@@ -248,4 +248,4 @@ export class JavascriptParser extends parsers.Parser {
     }
 }
 
-parsers.register(JavascriptParser);
+parsers.register("javascript", JavascriptParser);

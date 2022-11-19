@@ -144,6 +144,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
     var oldLines = [];
     var lineCache = {};
     var lastActivity = Date.now();
+    var parserClass = parsers.registeredParsers[props.language] || parsers.Parser;
 
     inter.getPrimarySelection = function() {
         return new Selection(input.get().selectionStart, input.get().selectionEnd);
@@ -274,7 +275,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
                 lines[lineIndex].getText() == line
             ) {
                 if (lines[lineIndex]?.inter.isDirty() && isVisible) {
-                    var parser = parsers.registeredParsers[0];
+                    var parser = parserClass;
 
                     lines[lineIndex].inter.setParserInstance(new parser(
                         line,
@@ -296,7 +297,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
                 renderStats.createUnrendered++;
             } else {
-                previousLine = createLineElement(line, previousLine, parsers.registeredParsers[0]);
+                previousLine = createLineElement(line, previousLine, parserClass);
 
                 renderStats.createRendered++;
             }

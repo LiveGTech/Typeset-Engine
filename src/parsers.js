@@ -7,7 +7,7 @@
     Licensed by the LiveG Open-Source Licence, which can be found at LICENCE.md.
 */
 
-export var registeredParsers = [];
+export var registeredParsers = {};
 
 export class Token {
     constructor(type, code) {
@@ -85,6 +85,8 @@ export class DirtyParser extends Parser {
     }
 }
 
-export function register(parser) {
-    this.registeredParsers.push(parser);
+export function register(language, parser) {
+    registeredParsers[language] = parser;
 }
+
+register("text", Parser);
