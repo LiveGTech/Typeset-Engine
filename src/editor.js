@@ -71,6 +71,11 @@ export class PositionVector {
     toIndex(text) {
         var selectedLines = text.split("\n").slice(0, this.lineIndex + 1);
 
+        // If position is after the possible length, then return the maximum
+        if (!selectedLines[selectedLines.length - 1]) {
+            return text.length;
+        }
+
         selectedLines[selectedLines.length - 1] = selectedLines[selectedLines.length - 1].substring(0, this.columnIndex);
 
         // Add 1 for each line to count newlines; subtract 1 to ignore final newline
