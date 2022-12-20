@@ -13,6 +13,7 @@ import * as astronaut from "https://opensource.liveg.tech/Adapt-UI/astronaut/ast
 import * as typeset from "./typeset.js";
 import * as parsers from "./parsers.js";
 import "./languages/javascript.js";
+import "./languages/html.js";
 
 const c = astronaut.components;
 
@@ -280,9 +281,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
                 lines[lineIndex].getText() == line
             ) {
                 if (lines[lineIndex]?.inter.isDirty() && isVisible) {
-                    var parser = parserClass;
-
-                    lines[lineIndex].inter.setParserInstance(new parser(
+                    lines[lineIndex].inter.setParserInstance(new parserClass(
                         line,
                         previousLine != null ? previousLine.inter.getParserInstance().state : undefined
                     ));
