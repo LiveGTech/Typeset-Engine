@@ -159,6 +159,13 @@ export class CssParser extends parsers.Parser {
                 continue;
             }
 
+            if (this.state.inRule && this.matchesToken("#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?")) {
+                // Hexadecimal colour literal
+                this.addToken("number");
+
+                continue;
+            }
+
             if (this.matchesToken("[#.][a-zA-Z\\-][a-zA-Z0-9\\-]*")) {
                 // Element ID or class selector name
                 this.addToken("identifier");

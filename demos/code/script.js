@@ -15,7 +15,7 @@ fetch("../../src/editor.js").then(function(response) {
                 Section() (
                     Heading() ("Typeset Code Editor Demo"),
                     typeset.CodeEditor({
-                        language: "html",
+                        language: "javascript",
                         code: exampleCode
                     }) ()
                 )
