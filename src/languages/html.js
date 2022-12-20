@@ -58,8 +58,6 @@ export class HtmlParser extends parsers.Parser {
                 this.tokens.push(...parser.tokens);
 
                 continue;
-
-                // FIXME: Not returning to HTML on next line
             }
 
             if (this.state.inBlockComment) {
@@ -190,6 +188,8 @@ export class HtmlParser extends parsers.Parser {
             if (this.matchesToken("<\\/?", "[^<>\"'\\s]+")) {
                 // Tag symbol match
 
+                var isOpening = !this.currentToken.startsWith("</");
+
                 this.addToken("syntaxSymbol");
 
                 // Tag name match
@@ -197,7 +197,12 @@ export class HtmlParser extends parsers.Parser {
                 this.matchesToken("[^<>\"'\\s]+");
 
                 this.state.inTag = true;
-                this.state.currentTagName = this.currentToken.toLowerCase();
+
+                if (isOpening) {
+                    this.state.currentTagName = this.currentToken.toLowerCase();
+                } else {
+                    this.state.currentTagName = null;
+                }
 
                 this.addToken("keyword");
 
