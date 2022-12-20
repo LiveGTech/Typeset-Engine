@@ -13,11 +13,45 @@ export class HtmlParser extends parsers.Parser {
     initState() {
         this.state.inBlockComment = false;
         this.state.inTag = false;
-        this.state.inTagValue = false;
+        this.state.currentTagName = null;
+        this.state.inAttributeValue = false;
+        this.state.currentAttributeValueOpener = null;
+        this.state.currentEmbeddedLanguage = null;
+        this.state.currentEmbeddedParserState = {};
+    }
+
+    setEmbeddedLanguage() {
+        if (this.state.currentTagName == "script") {
+            this.state.currentEmbeddedLanguage = "javascript";
+        }
     }
 
     tokenise() {
         while (this.remainingLine.length > 0) {
+            if (this.state.currentEmbeddedLanguage != null) {
+                var endPoint = this.remainingLine.indexOf(`</${this.state.currentTagName}>`);
+                var parserClass = parsers.registeredParsers[this.state.currentEmbeddedLanguage] || parsers.Parser;
+
+                if (endPoint == -1) {
+                    endPoint = this.remainingLine.length;
+                } else {
+                    this.state.currentEmbeddedLanguage = null;
+                }
+
+                var embeddedCode = this.remainingLine.substring(0, endPoint);
+
+                var parser = new parserClass(embeddedCode, this.state.currentEmbeddedParserState);
+
+                parser.tokenise();
+
+                this.state.currentEmbeddedParserState = JSON.parse(JSON.stringify(parser.state));
+                this.remainingLine = this.remainingLine.substring(endPoint);
+
+                this.tokens.push(...parser.tokens);
+
+                continue;
+            }
+
             if (this.state.inBlockComment) {
                 if (this.matchesToken("-->")) {
                     // Block comment close match
@@ -35,33 +69,61 @@ export class HtmlParser extends parsers.Parser {
                 continue;
             }
 
-            if (this.state.inTagValue) {
-                if (this.matchesToken("\"[^\"]*\"") || this.matchesToken("'[^']*'")) {
-                    // Explicit attribute value string
+            if (this.matchesToken("&([a-zA-Z0-9]+|#[0-9]+|#x[0-9a-fA-F]+);?")) {
+                // Entity
+                this.addToken("escape");
+                continue;
+            }
 
-                    this.state.inTagValue = false;
+            if (this.state.inAttributeValue) {
+                if (this.state.currentAttributeValueOpener != null) {
+                    if (this.matchesTokenString(this.state.currentAttributeValueOpener)) {
+                        // Closing explicit attribute value symbol
 
+                        this.state.inAttributeValue = false;
+                        this.state.currentAttributeValueOpener = null;
+
+                        this.addToken("string");
+
+                        continue;
+                    }
+                } else {
+                    if (this.matchesToken("[>\\s]")) { 
+                        // Closing implicit attribute value
+
+                        if (this.currentToken == ">") {
+                            this.state.inTag = false;
+                        }
+
+                        this.state.inAttributeValue = false;
+                        this.state.currentAttributeValueOpener = null;
+    
+                        this.setEmbeddedLanguage();
+                        this.addToken("syntaxSymbol");
+    
+                        continue;
+                    }
+
+                    if (this.matchesToken("[\"']")) {
+                        // Opening explicit attribute value symbol
+    
+                        this.state.currentAttributeValueOpener = this.currentToken;
+    
+                        this.addToken("string");
+    
+                        continue;
+                    }
+                }
+
+                // Attribute value
+
+                if (this.matchesToken("[^>\"'&\\s]+")) {
                     this.addToken("string");
 
                     continue;
                 }
 
-                if (this.matchesToken(">")) {
-                    // Tag end
-
-                    this.state.inTag = false;
-                    this.state.inTagValue = false;
-
-                    this.addToken("syntaxSymbol");
-
-                    continue;
-                }
-
-                // Implicit attribute value string
-
-                this.state.inTagValue = false;
-
-                this.matchesToken("[^>\\s]*");
+                this.matchesToken(".");
                 this.addToken("string");
 
                 continue;
@@ -75,7 +137,7 @@ export class HtmlParser extends parsers.Parser {
                     this.matchesToken("\\s*=\\s*");
                     this.addToken("syntaxSymbol");
 
-                    this.state.inTagValue = true;
+                    this.state.inAttributeValue = true;
 
                     continue;
                 }
@@ -92,6 +154,7 @@ export class HtmlParser extends parsers.Parser {
 
                     this.state.inTag = false;
 
+                    this.setEmbeddedLanguage();
                     this.addToken("syntaxSymbol");
 
                     continue;
@@ -116,24 +179,28 @@ export class HtmlParser extends parsers.Parser {
 
             if (this.matchesToken("<\\/?", "[^<>\"'\\s]+")) {
                 // Tag symbol
+
                 this.addToken("syntaxSymbol");
 
                 // Tag name
+
                 this.matchesToken("[^<>\"'\\s]+");
-                this.addToken("keyword");
 
                 this.state.inTag = true;
+                this.state.currentTagName = this.currentToken.toLowerCase();
+
+                this.addToken("keyword");
 
                 continue;
             }
 
-            if (this.matchesToken("[^<>]+")) {
-                // Generic text
+            // Generic text
+
+            if (this.matchesToken("[^<>&]+")) {
                 this.addToken("text");
                 continue;
             }
 
-            // Fallback for text
             this.matchesToken(".");
             this.addToken("text");
         }
