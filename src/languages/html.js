@@ -58,6 +58,8 @@ export class HtmlParser extends parsers.Parser {
                 this.tokens.push(...parser.tokens);
 
                 continue;
+
+                // FIXME: Not returning to HTML on next line
             }
 
             if (this.state.inBlockComment) {
