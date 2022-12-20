@@ -12,8 +12,10 @@ import * as astronaut from "https://opensource.liveg.tech/Adapt-UI/astronaut/ast
 
 import * as typeset from "./typeset.js";
 import * as parsers from "./parsers.js";
+
 import "./languages/javascript.js";
 import "./languages/html.js";
+import "./languages/css.js";
 
 const c = astronaut.components;
 

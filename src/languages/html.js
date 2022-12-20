@@ -23,6 +23,14 @@ export class HtmlParser extends parsers.Parser {
     setEmbeddedLanguage() {
         if (this.state.currentTagName == "script") {
             this.state.currentEmbeddedLanguage = "javascript";
+
+            return;
+        }
+
+        if (this.state.currentTagName == "style") {
+            this.state.currentEmbeddedLanguage = "css";
+
+            return;
         }
     }
 
