@@ -70,7 +70,7 @@ export class HtmlParser extends parsers.Parser {
             }
 
             if (this.matchesToken("&([a-zA-Z0-9]+|#[0-9]+|#x[0-9a-fA-F]+);?")) {
-                // Entity
+                // Entity match
                 this.addToken("escape");
                 continue;
             }
@@ -78,7 +78,7 @@ export class HtmlParser extends parsers.Parser {
             if (this.state.inAttributeValue) {
                 if (this.state.currentAttributeValueOpener != null) {
                     if (this.matchesTokenString(this.state.currentAttributeValueOpener)) {
-                        // Closing explicit attribute value symbol
+                        // Closing explicit attribute value symbol match
 
                         this.state.inAttributeValue = false;
                         this.state.currentAttributeValueOpener = null;
@@ -89,7 +89,7 @@ export class HtmlParser extends parsers.Parser {
                     }
                 } else {
                     if (this.matchesToken("[>\\s]")) { 
-                        // Closing implicit attribute value
+                        // Closing implicit attribute value match
 
                         if (this.currentToken == ">") {
                             this.state.inTag = false;
@@ -105,7 +105,7 @@ export class HtmlParser extends parsers.Parser {
                     }
 
                     if (this.matchesToken("[\"']")) {
-                        // Opening explicit attribute value symbol
+                        // Opening explicit attribute value symbol match
     
                         this.state.currentAttributeValueOpener = this.currentToken;
     
@@ -115,7 +115,7 @@ export class HtmlParser extends parsers.Parser {
                     }
                 }
 
-                // Attribute value
+                // Attribute value match
 
                 if (this.matchesToken("[^>\"'&\\s]+")) {
                     this.addToken("string");
@@ -131,7 +131,7 @@ export class HtmlParser extends parsers.Parser {
 
             if (this.state.inTag) {
                 if (this.matchesToken("[^=>\"']+", "\\s*=\\s*")) {
-                    // Attribute name with associated value
+                    // Attribute name with associated value match
                     this.addToken("identifier");
 
                     this.matchesToken("\\s*=\\s*");
@@ -143,14 +143,14 @@ export class HtmlParser extends parsers.Parser {
                 }
 
                 if (this.matchesToken("[^=>\"'\\s]+")) {
-                    // Attribute name
+                    // Attribute name match
                     this.addToken("identifier");
 
                     continue;
                 }
 
                 if (this.matchesToken(">")) {
-                    // Tag end
+                    // Tag end match
 
                     this.state.inTag = false;
 
@@ -160,7 +160,7 @@ export class HtmlParser extends parsers.Parser {
                     continue;
                 }
 
-                // Fallback for text
+                // Fallback for text match
                 this.matchesToken(".");
                 this.addToken("text");
 
@@ -178,11 +178,11 @@ export class HtmlParser extends parsers.Parser {
             }
 
             if (this.matchesToken("<\\/?", "[^<>\"'\\s]+")) {
-                // Tag symbol
+                // Tag symbol match
 
                 this.addToken("syntaxSymbol");
 
-                // Tag name
+                // Tag name match
 
                 this.matchesToken("[^<>\"'\\s]+");
 
@@ -194,7 +194,7 @@ export class HtmlParser extends parsers.Parser {
                 continue;
             }
 
-            // Generic text
+            // Generic text match
 
             if (this.matchesToken("[^<>&]+")) {
                 this.addToken("text");
