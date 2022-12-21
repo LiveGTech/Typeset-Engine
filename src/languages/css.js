@@ -9,7 +9,7 @@
 
 import * as parsers from "../parsers.js";
 
-const COMPARATORS = ["^=", "~=", "="];
+const COMPARATORS = ["~=", "|=", "^=", "$=", "*=", "="];
 const OPERATORS = ["+", "-", "*", "/", ">", "~"];
 
 export class CssParser extends parsers.Parser {
@@ -143,6 +143,12 @@ export class CssParser extends parsers.Parser {
                 continue;
             }
 
+            if (this.state.inAttributeSelector && this.matchesToken("[is]", "\\]")) {
+                // Attribute case sensitivity option match
+                this.addToken("operator");
+                continue;
+            }
+
             if (this.state.inRule && this.matchesToken("[a-zA-Z\\-][a-zA-Z0-9\\-]*", "\\s*:")) {
                 // Property name
                 this.addToken("callIdentifier");
@@ -203,7 +209,7 @@ export class CssParser extends parsers.Parser {
             }
 
             if (this.matchesTokens(COMPARATORS)) {
-                // Comparator match
+                // Attribute comparator match
 
                 this.state.afterComparator = true;
 
@@ -213,7 +219,7 @@ export class CssParser extends parsers.Parser {
             }
 
             if (this.matchesTokens(OPERATORS)) {
-                // Operator match
+                // Attribute operator match
                 this.addToken("operator");
                 continue;
             }
