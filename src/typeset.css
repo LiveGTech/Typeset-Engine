@@ -66,6 +66,7 @@ typeset-code > textarea {
 
 typeset-code > textarea:disabled {
     opacity: 1;
+    cursor: text;
 }
 
 typeset-code > textarea::selection {
