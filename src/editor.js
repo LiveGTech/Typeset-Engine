@@ -25,7 +25,8 @@ const LAZY_RENDER_PADDING = 10;
 export const renderModes = {
     FULL: 0,
     PARTIAL: 1,
-    FORCE_VISIBLE: 2
+    FORCE_VISIBLE: 2,
+    FORCE_VISIBLE_AND_DIRTY: 3
 };
 
 function logStats(statsType, stats) {
@@ -74,8 +75,8 @@ export class PositionVector {
     toIndex(text) {
         var selectedLines = text.split("\n").slice(0, this.lineIndex + 1);
 
-        // If position is after the possible length, then return the maximum
-        if (!selectedLines[selectedLines.length - 1]) {
+        // If there are no lines in index range, then return the maximum text length
+        if (selectedLines.length == 0) {
             return text.length;
         }
 
@@ -277,7 +278,8 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
             if (
                 (
                     renderMode == renderModes.PARTIAL ||
-                    (renderMode == renderModes.FORCE_VISIBLE && !isVisible)
+                    (renderMode == renderModes.FORCE_VISIBLE && !isVisible) ||
+                    (renderMode == renderModes.FORCE_VISIBLE_AND_DIRTY && (!isVisible || lines[lineIndex]?.inter.isDirty()))
                 ) &&
                 lines[lineIndex] &&
                 lines[lineIndex].getText() == line
@@ -322,9 +324,19 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
     };
 
     input.on("input", function() {
+        var previousState = JSON.stringify(lines[inter.getPositionVector().lineIndex]?.inter.getParserInstance().state);
+
         inter.render();
 
         lastActivity = Date.now();
+
+        if (previousState != JSON.stringify(lines[inter.getPositionVector().lineIndex]?.inter.getParserInstance().state)) {
+            for (var lineIndex = inter.getPositionVector().lineIndex; lineIndex < lines.length; lineIndex++) {
+                lines[lineIndex]?.inter.makeDirty();
+            }
+
+            inter.render(renderModes.FORCE_VISIBLE);
+        }
     });
 
     input.on("scroll", function() {
@@ -338,7 +350,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
     setInterval(function() {
         if (Date.now() - lastActivity >= 500) {
-            inter.render(renderModes.FORCE_VISIBLE);
+            inter.render(renderModes.FORCE_VISIBLE_AND_DIRTY);
 
             lastActivity = Date.now();
         }
