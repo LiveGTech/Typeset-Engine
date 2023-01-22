@@ -13,6 +13,8 @@
     --typeset-background: var(--secondaryBackground);
     --typeset-foreground: var(--secondaryText);
     --typeset-lineNumbers: rgba(0, 0, 0, 0.6);
+    --typeset-caret: black;
+    --typeset-selection: rgba(0, 0, 0, 0.2);
 }
 
 typeset-container {
@@ -57,7 +59,7 @@ typeset-code > textarea {
     border: none;
     background-color: transparent;
     color: transparent;
-    caret-color: black;
+    caret-color: var(--typeset-caret);
     white-space: pre;
     outline: none;
     resize: none;
@@ -70,7 +72,7 @@ typeset-code > textarea:disabled {
 }
 
 typeset-code > textarea::selection {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: var(--typeset-selection);
     color: transparent;
 }
 
@@ -130,4 +132,12 @@ typeset-line span:empty::after {
 
 typeset-token {
     display: inline;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --typeset-lineNumbers: rgba(255, 255, 255, 0.6);
+        --typeset-caret: white;
+        --typeset-selection: rgba(255, 255, 255, 0.2);
+    }
 }

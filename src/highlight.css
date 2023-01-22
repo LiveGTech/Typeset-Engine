@@ -72,3 +72,16 @@ typeset-token[type="callIdentifier"] {
 typeset-token[type="number"] {
     color: var(--typeset-highlight-number);
 }
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --typeset-highlight-text: var(--secondaryText);
+        --typeset-highlight-comment: rgba(255, 255, 255, 0.5);
+        --typeset-highlight-valueKeyword: #2090e0;
+        --typeset-highlight-operator: #f030f0;
+        --typeset-highlight-syntaxSymbol: #2090e0;
+        --typeset-highlight-string: #10b030;
+        --typeset-highlight-identifier: #30a0f0;
+        --typeset-highlight-callIdentifier: #c060f0;
+    }
+}
