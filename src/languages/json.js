@@ -11,13 +11,25 @@ import * as parsers from "../parsers.js";
 
 const VALUE_KEYWORDS = ["false", "Infinity", "NaN", "null", "true"];
 
+const BRACKET_TYPES = {
+    "(": {type: "expression", opening: true},
+    ")": {type: "expression", opening: false},
+    "{": {type: "object", opening: true},
+    "}": {type: "object", opening: false},
+    "[": {type: "array", opening: true},
+    "]": {type: "array", opening: false}
+};
+
 export class JsonParser extends parsers.Parser {
     initState() {
         this.state.stringStack = [];
+        this.state.bracketStack = [];
         this.state.inStringNewlineEscape = false;
         this.state.inBlockComment = false;
+        this.state.inObjectKey = false;
 
         this.pushStringStateStackDefaults();
+        this.pushBracketStateStackDefaults();
     }
 
     get stringStackLast() {
@@ -30,7 +42,23 @@ export class JsonParser extends parsers.Parser {
 
     pushStringStateStackDefaults() {
         this.state.stringStack.push({
-            stringOpener: null
+            stringOpener: null,
+            isKeyString: false
+        });
+    }
+
+    get bracketStackLast() {
+        return this.state.bracketStack[this.state.bracketStack.length - 1];
+    }
+
+    set bracketStackLast(value) {
+        this.state.bracketStack[this.state.bracketStack.length - 1] = value;
+    }
+
+    pushBracketStateStackDefaults() {
+        this.state.bracketStack.push({
+            type: null,
+            opening: true
         });
     }
 
@@ -95,7 +123,7 @@ export class JsonParser extends parsers.Parser {
 
                     this.stringStackLast.stringOpener = null;
 
-                    this.addToken("string");
+                    this.addToken(this.state.inObjectKey ? "identifier" : "string");
 
                     continue;
                 }
@@ -103,7 +131,7 @@ export class JsonParser extends parsers.Parser {
                 // String body match
 
                 this.matchesToken("(?:[^\"'`\\\\\\$]+|.)");
-                this.addToken("string");
+                this.addToken(this.state.inObjectKey ? "identifier" : "string");
 
                 continue;
             }
@@ -112,8 +140,9 @@ export class JsonParser extends parsers.Parser {
                 // String open match
 
                 this.stringStackLast.stringOpener = this.currentToken;
+                this.stringStackLast.isKeyString = false;
 
-                this.addToken("string");
+                this.addToken(this.state.inObjectKey ? "identifier" : "string");
 
                 continue;
             }
@@ -134,10 +163,23 @@ export class JsonParser extends parsers.Parser {
                 continue;
             }
 
-            if (this.matchesToken(`\\(|\\)|\\{|\\}|\\[|\\]`)) {
+            if (this.matchesTokens(Object.keys(BRACKET_TYPES))) {
                 // Bracket match
-                // TODO: Classify opening/closing brackets and bracket type
+
                 this.addToken("bracket");
+
+                var bracket = BRACKET_TYPES[this.currentToken];
+
+                if (bracket.opening) {
+                    this.state.bracketStack.push(bracket);
+                } else if (this.state.bracketStack.length > 1) {
+                    this.state.bracketStack.pop();
+                }
+
+                this.state.inObjectKey = this.bracketStackLast.type == "object";
+
+                // TODO: We should check for bracket mismatches and highlight syntax errors here
+
                 continue;
             }
 
@@ -164,6 +206,22 @@ export class JsonParser extends parsers.Parser {
                 continue;
             }
 
+            if (this.matchesToken(":")) {
+                this.state.inObjectKey = false;
+
+                this.addToken("assignment");
+
+                continue;
+            }
+
+            if (this.matchesToken(",") && this.bracketStackLast.type == "object") {
+                this.state.inObjectKey = true;
+
+                this.addToken("separator");
+
+                continue;
+            }
+
             if (this.matchesToken("\\s+")) {
                 // Whitespace match
                 this.addToken("whitespace");
@@ -175,7 +233,7 @@ export class JsonParser extends parsers.Parser {
             this.addToken("text");
         }
 
-        if (!this.stringStackLast.inTemplateString && !this.state.inStringNewlineEscape) {
+        if (!this.state.inStringNewlineEscape) {
             this.stringStackLast.stringOpener = null;
         }
     }

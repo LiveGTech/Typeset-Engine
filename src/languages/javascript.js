@@ -185,7 +185,7 @@ export class JavascriptParser extends parsers.Parser {
 
             if (this.matchesToken(`\\(|\\)|\\{|\\}|\\[|\\]`)) {
                 // Bracket match
-                // TODO: Classify opening/closing brackets and bracket type
+                // TODO: Classify opening/closing brackets and bracket type (see JSON parser implementation)
                 this.addToken("bracket");
                 continue;
             }
