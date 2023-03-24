@@ -14,6 +14,7 @@ import * as typeset from "./typeset.js";
 import * as parsers from "./parsers.js";
 
 import "./languages/javascript.js";
+import "./languages/json.js";
 import "./languages/html.js";
 import "./languages/css.js";
 
