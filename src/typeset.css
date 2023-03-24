@@ -9,7 +9,7 @@
 
 @import url("highlight.css");
 
-:root {
+:root, ::selection {
     --typeset-background: var(--secondaryBackground);
     --typeset-foreground: var(--secondaryText);
     --typeset-lineNumbers: rgba(0, 0, 0, 0.6);
@@ -73,7 +73,6 @@ typeset-code > textarea:disabled {
 
 typeset-code > textarea::selection {
     background-color: var(--typeset-selection);
-    color: transparent;
 }
 
 typeset-code[wrap="true"] > textarea, typeset-code[wrap="true"] typeset-line {
