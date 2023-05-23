@@ -265,14 +265,14 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         var lines = [];
         var currentLineIndex = 0;
         var currentPreviousLineIndex = 0;
-        var lineElements = linesContainer.find("typeset-line").items();
+        var currentLineElements = linesContainer.find("typeset-line").items();
         var lineElementsToRemove = [];
 
         lineDiff.forEach(function(result) {
             var newLine = null;
 
             if (result == diffResults.REMOVED) {
-                lineElementsToRemove.push(lineElements[currentPreviousLineIndex]);
+                lineElementsToRemove.push(currentLineElements[currentPreviousLineIndex]);
 
                 renderStats.remove++;
             } else {
@@ -296,13 +296,13 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
                     renderStats.createRendered++;
 
                     if (result == diffResults.ADDED) {
-                        if (lineElements.length == 0) {
+                        if (currentLineElements.length == 0) {
                             linesContainer.add(newLine.render());
                         } else {
-                            linesContainer.get().insertBefore(newLine.render().get(), lineElements[currentPreviousLineIndex]?.get());
+                            linesContainer.get().insertBefore(newLine.render().get(), currentLineElements[currentPreviousLineIndex]?.get());
                         }
                     } else {
-                        lineElements[currentPreviousLineIndex].clear().add(...newLine.render().find(":scope > *").items());
+                        currentLineElements[currentPreviousLineIndex].clear().add(...newLine.render().find(":scope > *").items());
                     }
                 }
 
@@ -317,6 +317,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
         lineElementsToRemove.forEach((element) => element.remove());
 
+        lineElements = linesContainer.find("typeset-line").items();
         previousLines = lines;
         previousCodeLines = codeLines;
 
