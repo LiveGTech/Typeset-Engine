@@ -331,6 +331,18 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
     input.on("input", function() {
         inter.render();
+
+        lastActivity = Date.now();
+
+        if (previousState != JSON.stringify(lines[inter.getPositionVector().lineIndex]?.inter.getParserInstance().state)) {
+            for (var lineIndex = inter.getPositionVector().lineIndex; lineIndex < lines.length; lineIndex++) {
+                lines[lineIndex]?.inter.makeDirty();
+            }
+
+            inter.render(renderModes.FORCE_VISIBLE);
+        }
+
+        editorContainer.emit("input");
     });
 
     input.on("scroll", function() {
