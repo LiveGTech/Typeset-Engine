@@ -329,6 +329,16 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         logStats("render", renderStats);
     };
 
+    inter.getCode = function() {
+        return input.getValue();
+    };
+
+    inter.setCode = function(code) {
+        input.setValue(code);
+
+        inter.render();
+    };
+
     input.on("input", function() {
         inter.render();
 
