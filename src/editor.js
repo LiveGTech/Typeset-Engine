@@ -338,6 +338,8 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
             inter.render(renderModes.FORCE_VISIBLE);
         }
+
+        editorContainer.emit("input");
     });
 
     input.on("scroll", function() {
