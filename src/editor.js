@@ -342,6 +342,10 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
     input.on("keydown", function(event) {
         if (["Tab", "Backspace"].includes(event.code)) {
+            if (props.noSmartIndentation) {
+                return;
+            }
+
             if (event.code == "Tab" && nextTabMovesFocus) {
                 // TODO: Add checks to see if gShell Switch Navigation causes this event
 
@@ -450,6 +454,10 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
     input.on("keyup", function(event) {
         if (event.code == "Enter" && !event.shiftKey) { // Indent subsequent lines
+            if (props.noSmartIndentation) {
+                return;
+            }
+
             var startPosition = inter.getPositionVector(inter.getPrimarySelection().start);
             var endPosition = inter.getPositionVector(inter.getPrimarySelection().end);
             var allLines = inter.getCode().split("\n");
