@@ -160,6 +160,7 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
     var lastActivity = Date.now();
     var parserClass = parsers.registeredParsers[props.language] || parsers.Parser;
     var indentString = props.indentString || "    ";
+    var nextTabMovesFocus = false;
 
     inter.getPrimarySelection = function() {
         return new Selection(input.get().selectionStart, input.get().selectionEnd);
@@ -341,6 +342,14 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
     input.on("keydown", function(event) {
         if (["Tab", "Backspace"].includes(event.code)) {
+            if (event.code == "Tab" && nextTabMovesFocus) {
+                // TODO: Add checks to see if gShell Switch Navigation causes this event
+
+                nextTabMovesFocus = false;
+
+                return;
+            }
+
             var startPosition = inter.getPositionVector(inter.getPrimarySelection().start);
             var endPosition = inter.getPositionVector(inter.getPrimarySelection().end);
             var allLines = inter.getCode().split("\n");
@@ -430,6 +439,12 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
             inter.setCode(allLines.join("\n"));
 
             inter.setPrimarySelection(new Selection(newStartPosition.toIndex(inter.getCode()), newEndPosition.toIndex(inter.getCode())));
+        }
+
+        nextTabMovesFocus = false;
+
+        if (event.code == "Escape") {
+            nextTabMovesFocus = true;
         }
     });
 
