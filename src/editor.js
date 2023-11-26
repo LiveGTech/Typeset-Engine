@@ -475,6 +475,10 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
             startPosition.columnIndex += indentString.length * indentCount;
             endPosition.columnIndex += indentString.length * indentCount;
 
+            if (previousLineRemaining.length == 0) { // Automatically clear lines that contain indentation only
+                allLines[startPosition.lineIndex - 1] = "";
+            }
+
             inter.setCode(allLines.join("\n"));
 
             inter.setPrimarySelection(new Selection(startPosition.toIndex(inter.getCode()), endPosition.toIndex(inter.getCode())));
