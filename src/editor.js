@@ -153,6 +153,10 @@ export class PositionVector {
         // Add 1 for each line to count newlines; subtract 1 to ignore final newline
         return selectedLines.map((line) => line.length + 1).reduce((accumulator, value) => accumulator + value, 0) - 1;
     }
+
+    clone() {
+        return new this.constructor(this.lineIndex, this.columnIndex);
+    }
 }
 
 export class Line {
@@ -225,6 +229,8 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
     var previousCodeLines = [];
     var lineElements = [];
     var parserClass = parsers.registeredParsers[props.language] || parsers.Parser;
+    var indentString = props.indentString || "    ";
+    var nextTabMovesFocus = false;
 
     inter.getPrimarySelection = function() {
         return new Selection(input.get().selectionStart, input.get().selectionEnd);
@@ -338,6 +344,151 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
 
         inter.render();
     };
+
+    input.on("keydown", function(event) {
+        if (["Tab", "Backspace"].includes(event.code)) {
+            if (props.noSmartIndentation) {
+                return;
+            }
+
+            if (event.code == "Tab" && nextTabMovesFocus) {
+                // TODO: Add checks to see if gShell Switch Navigation causes this event
+
+                nextTabMovesFocus = false;
+
+                return;
+            }
+
+            var startPosition = inter.getPositionVector(inter.getPrimarySelection().start);
+            var endPosition = inter.getPositionVector(inter.getPrimarySelection().end);
+            var allLines = inter.getCode().split("\n");
+            var selectedLines = allLines.slice(startPosition.lineIndex, endPosition.lineIndex + 1);
+            var newStartPosition = startPosition.clone();
+            var newEndPosition = endPosition.clone();
+
+            if (event.code == "Tab" && !event.shiftKey && selectedLines.length == 1) { // Add tab to current line at selection
+                var distanceToNextTabStop = indentString.length - (selectedLines[0].substring(0, startPosition.columnIndex).length % indentString.length);
+
+                event.preventDefault();
+
+                selectedLines[0] = selectedLines[0].substring(0, startPosition.columnIndex) + indentString.substring(0, distanceToNextTabStop) + selectedLines[0].substring(endPosition.columnIndex);
+
+                newStartPosition.columnIndex += distanceToNextTabStop;
+                newEndPosition.columnIndex += distanceToNextTabStop - (endPosition.columnIndex - startPosition.columnIndex);
+            }
+
+            if (event.code == "Tab" && !event.shiftKey && selectedLines.length != 1) { // Indent all selected lines if more than one line is selected
+                event.preventDefault();
+
+                newStartPosition.columnIndex += indentString.length;
+                newEndPosition.columnIndex += indentString.length;
+
+                selectedLines.forEach(function(line, i) {
+                    selectedLines[i] = indentString + line;
+                });
+            }
+
+            if (event.code == "Tab" && event.shiftKey) { // Dedent all selected lines
+                event.preventDefault();
+
+                selectedLines.forEach(function(line, i) {
+                    var newLineStart = 0;
+                    var startWhitespaceMatch = line.match(/^\s+/);
+
+                    if (line.startsWith(indentString)) {
+                        newLineStart = indentString.length;
+                    } else if (
+                        indentString.match(/^\s+$/) && // Indent is whitespace only
+                        startWhitespaceMatch && // Some whitespace matches at start
+                        startWhitespaceMatch[0].length < indentString.length // Whitespace at start is shorter than indent string
+                    ) {
+                        newLineStart = startWhitespaceMatch[0].length;
+                    }
+
+                    if (newLineStart == 0) {
+                        return;
+                    }
+
+                    selectedLines[i] = line.substring(newLineStart);
+
+                    if (i == 0) {
+                        newStartPosition.columnIndex -= newLineStart;
+                    }
+
+                    if (i == selectedLines.length - 1) {
+                        newEndPosition.columnIndex -= newLineStart;
+                    }
+                });
+            }
+
+            if (event.code == "Backspace" && !event.shiftKey && selectedLines.length == 1) { // Dedent line if backspace from end of indent
+                var line = selectedLines[0].substring(0, endPosition.columnIndex);
+                var lineRemaining = line;
+                var indentCount = 0;
+
+                while (lineRemaining.startsWith(indentString)) {
+                    lineRemaining = lineRemaining.substring(indentString.length);
+                    indentCount++;
+                }
+
+                if (indentCount > 0 && endPosition.columnIndex <= indentString.length * indentCount) {
+                    event.preventDefault();
+
+                    selectedLines[0] = selectedLines[0].substring(indentString.length);
+
+                    newStartPosition.columnIndex -= indentString.length;
+                    newEndPosition.columnIndex -= indentString.length;
+                }
+            }
+
+            selectedLines.forEach(function(newLine, i) {
+                allLines[startPosition.lineIndex + i] = newLine;
+            });
+
+            inter.setCode(allLines.join("\n"));
+
+            inter.setPrimarySelection(new Selection(newStartPosition.toIndex(inter.getCode()), newEndPosition.toIndex(inter.getCode())));
+        }
+
+        nextTabMovesFocus = false;
+
+        if (event.code == "Escape") {
+            nextTabMovesFocus = true;
+        }
+    });
+
+    input.on("keyup", function(event) {
+        if (event.code == "Enter" && !event.shiftKey) { // Indent subsequent lines
+            if (props.noSmartIndentation) {
+                return;
+            }
+
+            var startPosition = inter.getPositionVector(inter.getPrimarySelection().start);
+            var endPosition = inter.getPositionVector(inter.getPrimarySelection().end);
+            var allLines = inter.getCode().split("\n");
+            var previousLine = allLines[startPosition.lineIndex - 1];
+            var previousLineRemaining = previousLine;
+            var indentCount = 0;
+
+            while (previousLineRemaining.startsWith(indentString)) {
+                previousLineRemaining = previousLineRemaining.substring(indentString.length);
+                indentCount++;
+            }
+
+            allLines[startPosition.lineIndex] = indentString.repeat(indentCount) + allLines[startPosition.lineIndex];
+
+            startPosition.columnIndex += indentString.length * indentCount;
+            endPosition.columnIndex += indentString.length * indentCount;
+
+            if (previousLineRemaining.length == 0) { // Automatically clear lines that contain indentation only
+                allLines[startPosition.lineIndex - 1] = "";
+            }
+
+            inter.setCode(allLines.join("\n"));
+
+            inter.setPrimarySelection(new Selection(startPosition.toIndex(inter.getCode()), endPosition.toIndex(inter.getCode())));
+        }
+    })
 
     input.on("input", function() {
         inter.render();
