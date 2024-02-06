@@ -129,7 +129,7 @@ export var CodeToken = astronaut.component("CodeToken", function(props, children
 export var CodeEditor = astronaut.component("CodeEditor", function(props, children, inter) {
     typeset.init();
 
-    var input = c.ElementNode("textarea", {
+    var input = c.TextInputArea({
         attributes: {
             "spellcheck": "false"
         }
