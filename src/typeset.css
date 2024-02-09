@@ -15,6 +15,7 @@
     --typeset-lineNumbers: rgba(0, 0, 0, 0.6);
     --typeset-caret: black;
     --typeset-selection: rgba(0, 0, 0, 0.2);
+    --typeset-lineRender: transparent;
 }
 
 typeset-container {
@@ -95,6 +96,7 @@ typeset-scroll::-webkit-scrollbar-thumb {
 typeset-lines {
     display: block;
     width: fit-content;
+    min-width: 100%;
     min-height: 100%;
     flex-grow: 1;
     counter-reset: line;
@@ -110,6 +112,7 @@ typeset-line {
     text-indent: -3rem;
     white-space: pre;
     counter-increment: line;
+    animation: typeset-lineRender 0.5s;
 }
 
 typeset-line::before {
@@ -132,6 +135,16 @@ typeset-line span:empty::after {
 
 typeset-token {
     display: inline;
+}
+
+@keyframes typeset-lineRender {
+    0% {
+        background-color: var(--typeset-lineRender);
+    }
+
+    100% {
+        background-color: transparent;
+    }
 }
 
 @media (prefers-color-scheme: dark) {

@@ -23,6 +23,13 @@ const c = astronaut.components;
 const STATS_TO_LOG = [];
 const LAZY_RENDER_PADDING = 10;
 
+const diffResults = {
+    SAME: 0,
+    ADDED: 1,
+    REMOVED: 2,
+    MODIFIED: 3
+};
+
 export const renderModes = {
     FULL: 0,
     PARTIAL: 1,
@@ -34,6 +41,66 @@ function logStats(statsType, stats) {
     if (STATS_TO_LOG.includes(statsType)) {
         console.log(statsType, Date.now(), stats);
     }
+}
+
+function getDiff(previousLines, currentLines) {
+    var diff = [];
+    var previousQueue = [...previousLines];
+    var currentQueue = [...currentLines];
+
+    while (currentQueue.length > 0 || previousQueue.length > 0) {
+        if (previousQueue.length == 0) {
+            diff.push(diffResults.ADDED);
+
+            currentQueue.shift();
+
+            continue;
+        }
+
+        if (currentQueue.length == 0) {
+            diff.push(diffResults.REMOVED);
+
+            previousQueue.shift();
+
+            continue;
+        }
+
+        if (currentQueue[0] == previousQueue[0]) {
+            diff.push(diffResults.SAME);
+
+            currentQueue.shift();
+            previousQueue.shift();
+
+            continue;
+        }
+
+        if (currentQueue.includes(previousQueue[0])) {
+            while (currentQueue[0] != previousQueue[0]) {
+                diff.push(diffResults.ADDED);
+
+                currentQueue.shift();
+            }
+
+            continue;
+        }
+
+        if (previousQueue.includes(currentQueue[0])) {
+            while (previousQueue[0] != currentQueue[0]) {
+                diff.push(diffResults.REMOVED);
+
+                previousQueue.shift();
+            }
+
+            continue;
+        }
+
+        diff.push(diffResults.MODIFIED);
+
+        currentQueue.shift();
+        previousQueue.shift();
+    }
+
+    return diff;
 }
 
 export class Selection {
@@ -92,30 +159,34 @@ export class PositionVector {
     }
 }
 
+export class Line {
+    constructor(code, parserClass, previousLine = null) {
+        this.code = code;
+
+        this.parserInstance = new parserClass(
+            code,
+            previousLine != null ? previousLine.state : undefined
+        );
+
+        this.parserInstance.tokenise();
+    }
+
+    static areSameStates(a, b) {
+        return JSON.stringify(a?.state) == JSON.stringify(b?.state);
+    }
+
+    get state() {
+        return this.parserInstance.state;
+    }
+
+    render() {
+        return CodeLine() (
+            ...this.parserInstance.tokens.map((token) => CodeToken({type: token.type}) (token.code))
+        );
+    }
+}
+
 export var CodeLine = astronaut.component("CodeLine", function(props, children, inter) {
-    var dirty = false;
-
-    inter.isDirty = function() {
-        return dirty;
-    };
-
-    inter.makeDirty = function() {
-        dirty = true;
-    };
-
-    inter.clearDirty = function() {
-        dirty = false;
-    };
-
-    inter.getParserInstance = function() {
-        return props.parserInstance;
-    };
-
-    inter.setParserInstance = function(instance) {
-        props.parserInstance = instance;
-        dirty = true;
-    };
-
     return c.ElementNode("typeset-line", props) (...children);
 });
 
@@ -154,10 +225,9 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         codeContainer
     );
 
-    var lines = [];
-    var oldLines = [];
-    var lineCache = {};
-    var lastActivity = Date.now();
+    var previousLines = [];
+    var previousCodeLines = [];
+    var lineElements = [];
     var parserClass = parsers.registeredParsers[props.language] || parsers.Parser;
     var indentString = props.indentString || "    ";
     var nextTabMovesFocus = false;
@@ -175,156 +245,91 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
     };
 
     inter.getViewportVisibleContentsSelection = function() {
-        var lineHeight = lines[0]?.get().clientHeight;
+        var lineHeight = lineElements[0]?.get().clientHeight;
 
         return new Selection(
             new PositionVector(
-                lines.length != 0 ? Math.floor(scrollArea.get().scrollTop / lineHeight) : 0
+                lineElements.length != 0 ? Math.floor(scrollArea.get().scrollTop / lineHeight) : 0
             ).toIndex(input.getValue()),
             new PositionVector(
-                lines.length != 0 ? Math.floor((scrollArea.get().scrollTop + scrollArea.get().clientHeight) / lineHeight) : 0
+                lineElements.length != 0 ? Math.floor((scrollArea.get().scrollTop + scrollArea.get().clientHeight) / lineHeight) : 0
             ).toIndex(input.getValue())
         );
     };
-
-    function updateLinesContainer() {
-        var updateStats = {keep: 0, add: 0, remove: 0};
-
-        oldLines.forEach(function(line) {
-            if (!lines.includes(line)) {
-                line.remove();
-
-                line.removed = true;
-                updateStats.remove++;
-            }
-        });
-
-        oldLines = oldLines.map((line) => line.removed ? null : line);
-
-        var lineCount = input.getValue().split("\n").length;
-        var previousLine = null;
-
-        for (var lineIndex = 0; lineIndex < lineCount; lineIndex++) {
-            if (lines[lineIndex] == oldLines[lineIndex]) {
-                previousLine = lines[lineIndex];
-                updateStats.keep++;
-
-                continue;
-            }
-
-            if (previousLine != null) {
-                linesContainer.get().insertBefore(lines[lineIndex].get(), previousLine.get().nextSibling);
-            } else if (linesContainer.get().firstChild) {
-                linesContainer.get().insertBefore(lines[lineIndex].get(), linesContainer.get().firstChild);
-            } else {
-                linesContainer.add(lines[lineIndex]);
-            }
-
-            previousLine = lines[lineIndex];
-            updateStats.add++;
-        }
-
-        oldLines = [...lines];
-
-        logStats("update", updateStats);
-    }
-
-    function renderLine(lineElement, previousLine = null, cache = true) {
-        var parserInstance = parserInstance = lineElement.inter.getParserInstance();
-
-        parserInstance.tokenise();
-
-        lineElement.clear().add(
-            ...parserInstance.tokens.map((token) => CodeToken({type: token.type}) (token.code))
-        );
-
-        lineElement.inter.clearDirty();
-
-        var cacheHash = `${lineElement.getText()}|${JSON.stringify(previousLine?.inter.getParserInstance().previousState || {})}`;
-
-        if (cache) {
-            lineCache[cacheHash] = lineElement;
-        }
-
-        return lineElement;
-    }
-
-    function createLineElement(line, previousLine = null, parser = parsers.Parser, cache = true, customCacheHash = null) {
-        var cacheHash = customCacheHash || `${line}|${JSON.stringify(previousLine?.inter.getParserInstance().state || {})}`;
-
-        if (lineCache.hasOwnProperty(cacheHash)) {
-            var element = lineCache[cacheHash].copy();
-
-            element.inter = lineCache[cacheHash].inter;
-
-            return element;
-        }
-
-        var parserInstance = new parser(
-            line,
-            previousLine != null ? previousLine.inter.getParserInstance().state : undefined
-        );
-
-        var element = CodeLine({parserInstance}) ();
-
-        renderLine(element, previousLine, cache);
-
-        return element;
-    }
-
+    
     inter.render = function(renderMode = renderModes.PARTIAL) {
-        var previousLine = null;
+        // TODO: Implement lazy rendering
+
+        var codeLines = input.getValue().split("\n");
         var viewportSelection = inter.getViewportVisibleContentsSelection();
         var lazyRenderMinLineIndex = PositionVector.fromIndex(input.getValue(), viewportSelection.start).lineIndex - LAZY_RENDER_PADDING;
         var lazyRenderMaxLineIndex = PositionVector.fromIndex(input.getValue(), viewportSelection.end).lineIndex + LAZY_RENDER_PADDING;
-        var renderStats = {renderDirty: 0, getFromCache: 0, createUnrendered: 0, createRendered: 0};
+        var renderStats = {remove: 0, getFromCache: 0, createRendered: 0};
 
-        lines = input.getValue().split("\n").map(function(line, lineIndex) {
-            var isVisible = lineIndex >= lazyRenderMinLineIndex && lineIndex <= lazyRenderMaxLineIndex;
+        var previousLine = null;
+        var lineDiff = getDiff(previousCodeLines, codeLines);
+        var lines = [];
+        var currentLineIndex = 0;
+        var currentPreviousLineIndex = 0;
+        var currentLineElements = linesContainer.find("typeset-line").items();
+        var lineElementsToRemove = [];
 
-            if (
-                (
-                    renderMode == renderModes.PARTIAL ||
-                    (renderMode == renderModes.FORCE_VISIBLE && !isVisible) ||
-                    (renderMode == renderModes.FORCE_VISIBLE_AND_DIRTY && (!isVisible || lines[lineIndex]?.inter.isDirty()))
-                ) &&
-                lines[lineIndex] &&
-                lines[lineIndex].getText() == line
-            ) {
-                if (lines[lineIndex]?.inter.isDirty() && isVisible) {
-                    lines[lineIndex].inter.setParserInstance(new parserClass(
-                        line,
-                        previousLine != null ? previousLine.inter.getParserInstance().state : undefined
-                    ));
+        lineDiff.forEach(function(result) {
+            var newLine = null;
 
-                    renderLine(lines[lineIndex], previousLine);
+            if (result == diffResults.REMOVED) {
+                lineElementsToRemove.push(currentLineElements[currentPreviousLineIndex]);
 
-                    renderStats.renderDirty++;
-                } else {
+                renderStats.remove++;
+            } else {
+                var useCached = (
+                    result == diffResults.SAME &&
+                    codeLines[currentLineIndex] == previousLines[currentPreviousLineIndex]?.code &&
+                    Line.areSameStates(previousLine, previousLines[currentPreviousLineIndex - 1])
+                );
+
+                newLine = (
+                    useCached ?
+                    previousLines[currentPreviousLineIndex] :
+                    new Line(codeLines[currentLineIndex], parserClass, previousLine)
+                );
+
+                lines.push(newLine);
+
+                if (useCached) {
                     renderStats.getFromCache++;
+                } else {
+                    renderStats.createRendered++;
+
+                    if (result == diffResults.ADDED) {
+                        if (currentLineElements.length == 0) {
+                            linesContainer.add(newLine.render());
+                        } else {
+                            linesContainer.get().insertBefore(newLine.render().get(), currentLineElements[currentPreviousLineIndex]?.get());
+                        }
+                    } else {
+                        currentLineElements[currentPreviousLineIndex].clear().add(...newLine.render().find(":scope > *").items());
+                    }
                 }
 
-                previousLine = lines[lineIndex];
-            } else if (lineIndex > lazyRenderMaxLineIndex && renderMode != renderModes.FULL) {
-                previousLine = createLineElement(line, previousLine, parsers.DirtyParser, false, `${line}|{}`);
-
-                previousLine.inter.makeDirty();
-
-                renderStats.createUnrendered++;
-            } else {
-                previousLine = createLineElement(line, previousLine, parserClass);
-
-                renderStats.createRendered++;
+                previousLine = newLine;
+                currentLineIndex++;
             }
 
-            return previousLine;
+            if (result != diffResults.ADDED) {
+                currentPreviousLineIndex++;
+            }
         });
 
-        updateLinesContainer();
+        lineElementsToRemove.forEach((element) => element.remove());
+
+        lineElements = linesContainer.find("typeset-line").items();
+        previousLines = lines;
+        previousCodeLines = codeLines;
 
         codeContainer.get().style.setProperty(
             "--typeset-lineNumberChars",
-            `${Math.max(String(lines.length).length, 3)}`
+            `${Math.max(String(lineElements.length).length, 3)}`
         );
 
         logStats("render", renderStats);
@@ -486,8 +491,6 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
     })
 
     input.on("input", function() {
-        var previousState = JSON.stringify(lines[inter.getPositionVector().lineIndex]?.inter.getParserInstance().state);
-
         inter.render();
 
         lastActivity = Date.now();
@@ -508,16 +511,6 @@ export var CodeEditor = astronaut.component("CodeEditor", function(props, childr
         scrollArea.get().scrollLeft = input.get().scrollLeft;
 
         inter.render();
-
-        lastActivity = Date.now();
-    });
-
-    setInterval(function() {
-        if (Date.now() - lastActivity >= 500) {
-            inter.render(renderModes.FORCE_VISIBLE_AND_DIRTY);
-
-            lastActivity = Date.now();
-        }
     });
 
     input.setValue(props.code || "");
