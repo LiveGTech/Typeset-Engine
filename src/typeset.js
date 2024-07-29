@@ -7,7 +7,9 @@
     Licensed by the LiveG Open-Source Licence, which can be found at LICENCE.md.
 */
 
-import * as $g from "https://opensource.liveg.tech/Adapt-UI/src/adaptui.js";
+const AUI_URL_PREFIX = self.TYPESET_ENGINE_AUI_URL_PREFIX || "https://opensource.liveg.tech/Adapt-UI";
+
+var $g = await import(`${AUI_URL_PREFIX}/src/adaptui.js`);
 
 export * from "./editor.js";
 
@@ -24,7 +26,7 @@ export function init() {
         $g.sel("head").add(
             $g.create("link")
                 .setAttribute("rel", "stylesheet")
-                .setAttribute("href", "https://opensource.liveg.tech/Adapt-UI/src/adaptui.css")
+                .setAttribute("href", `${AUI_URL_PREFIX}/src/adaptui.css`)
             ,
             $g.create("link")
                 .setAttribute("rel", "stylesheet")

@@ -7,8 +7,10 @@
     Licensed by the LiveG Open-Source Licence, which can be found at LICENCE.md.
 */
 
-import * as $g from "https://opensource.liveg.tech/Adapt-UI/src/adaptui.js";
-import * as astronaut from "https://opensource.liveg.tech/Adapt-UI/astronaut/astronaut.js";
+const AUI_URL_PREFIX = self.TYPESET_ENGINE_AUI_URL_PREFIX || "https://opensource.liveg.tech/Adapt-UI";
+
+var $g = await import(`${AUI_URL_PREFIX}/src/adaptui.js`);
+var astronaut = await import(`${AUI_URL_PREFIX}/astronaut/astronaut.js`);
 
 import * as typeset from "./typeset.js";
 import * as parsers from "./parsers.js";
